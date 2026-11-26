@@ -77,15 +77,17 @@ const D={ // API rysowania dla zadania
 // ---------- stały motyw: stół laboratoryjny (sklejka brzozowa, nogi, podłoga) ----------
 // Zadanie podaje scene.table={x0,x1,y0,y1}; blat ma górę na z=0. Rysowany przed sceną zadania,
 // w dwóch przebiegach (to, co pod blatem → blat), więc nic spod stołu nie „prześwituje” przez blat.
+// pasek leżący na płaszczyźnie poziomej — perspektywicznie poprawny (zamiast grubej linii z zaokrąglonymi końcami)
+function stripNow(a,b,w,col){const d=nrm(sub(b,a)),n=mul(nrm(V(-d.y,d.x,0)),w/2);quadNow([sub(a,n),sub(b,n),add(b,n),add(a,n)],col)}
 function drawTable(tb){const X=V(1,0,0),Y=V(0,1,0);const th=tb.th||0.028,fz=tb.floor??-0.75,{x0,x1,y0,y1}=tb,cp=CB.pos,pad=3;
  quadNow([V(x0-pad,y0-pad,fz),V(x1+pad,y0-pad,fz),V(x1+pad,y1+pad,fz),V(x0-pad,y1+pad,fz)],"#a49c90");
- if(!isPip){for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;lineNow(V(x0-pad,y,fz),V(x1+pad,y,fz),0.002,"rgba(0,0,0,.05)")}}
+ if(!isPip){for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;stripNow(V(x0-pad,y,fz+0.0005),V(x1+pad,y,fz+0.0005),0.004,"rgba(0,0,0,.06)")}}
  const li=0.05,lh=(-fz-th)/2;for(const[x,y]of[[x0+li,y0+li],[x1-li,y0+li],[x0+li,y1-li],[x1-li,y1-li]])box(V(x,y,-th-lh),mul(X,0.022),mul(Y,0.022),mul(Z,lh),"#b08d5f");
  for(const y of[y0+li,y1-li])box(V((x0+x1)/2,y,-th-0.04),mul(X,(x1-x0)/2-li),mul(Y,0.01),mul(Z,0.04),"#bd9a6b");
  drawPrims();prims=[];
  const t=[V(x0,y0,0),V(x1,y0,0),V(x1,y1,0),V(x0,y1,0)],b=t.map(p=>add(p,V(0,0,-th)));const fn=(pts,n,col)=>{const c=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),0.25);if(dot(n,sub(cp,c))>0)quadNow(pts,shade(col,n,{},c))};
  fn([t[1],t[0],b[0],b[1]],mul(Y,-1),"#d4b283");fn([t[3],t[2],b[2],b[3]],Y,"#d4b283");fn([t[2],t[1],b[1],b[2]],X,"#c9a675");fn([t[0],t[3],b[3],b[0]],mul(X,-1),"#c9a675");
- if(cp.z>0){quadNow(t,"#e2c597");if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);lineNow(V(x0,y,0),V(x1,y+0.004*Math.sin(k*1.7),0),0.0005,"rgba(140,95,45,.10)")}}}
+ if(cp.z>0){quadNow(t,"#e2c597");if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);stripNow(V(x0,y,0.0001),V(x1,y+0.004*Math.sin(k*1.7),0.0001),0.0012,"rgba(140,95,45,.10)")}}}
  else quadNow(b,"#a88a62")}
 function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
  for(const g of L){const act=g.id===moveTool,hov=g.id===hoverId;if(!act&&!hov)continue;const q=P2(g.p);if(!q)continue;const q1=P2(add(g.p,mul(g.axis,0.01)));
