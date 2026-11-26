@@ -71,8 +71,8 @@ function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V
  // karton (ściana x = 0)
  D.solid(()=>{const bx=0.15,by=0.18,cb="#c4955f",o2={amb:0.62};
  D.box(V(-bx,0,BOXH/2),mul(X,bx),mul(Y,by),mul(Z,BOXH/2),cb,{...o2,cols:["#c09366",cb,cb,cb,"#c99c6c",cb]});
- D.face([V(0.0006,-0.03,BOXH),V(0.0006,0.03,BOXH),V(0.0006,0.03,BOXH-0.06),V(0.0006,-0.03,BOXH-0.06)],X,"#a87c4c",{...o2,decal:true,dz:-0.001,shadow:false});
- D.face([V(-bx-0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH-0.06),V(-bx-0.03,-by-0.0006,BOXH-0.06)],mul(Y,-1),"#a87c4c",{...o2,decal:true,dz:-0.001,shadow:false});
+ D.face([V(0.0006,-0.03,BOXH),V(0.0006,0.03,BOXH),V(0.0006,0.03,BOXH-0.06),V(0.0006,-0.03,BOXH-0.06)],X,"#d2a872",{...o2,decal:true,dz:-0.001,shadow:false});
+ D.face([V(-bx-0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH-0.06),V(-bx-0.03,-by-0.0006,BOXH-0.06)],mul(Y,-1),"#d2a872",{...o2,decal:true,dz:-0.001,shadow:false});
  D.face([V(-bx-0.03,-by,BOXH+0.0006),V(-bx+0.03,-by,BOXH+0.0006),V(-bx+0.03,by,BOXH+0.0006),V(-bx-0.03,by,BOXH+0.0006)],Z,"#c9a36f",{...o2,decal:true,dz:-0.001,shadow:false});
  D.face([V(0.0008,-0.02,st.zA-0.013),V(0.0008,0.02,st.zA-0.013),V(0.0008,0.02,st.zA+0.013),V(0.0008,-0.02,st.zA+0.013)].reverse(),X,"#ecebdc",{decal:true,dz:-0.001,shadow:false,amb:0.7});});
  const a=A();

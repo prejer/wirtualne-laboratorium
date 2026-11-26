@@ -50,7 +50,7 @@ function shade(col,n,o,cen){const rgb=rgbOf(col);let d=dot(n,LIGHT);if(o.two)d=M
  if(o.metal){const v=nrm(sub(CB.pos,cen));const h=nrm(add(LIGHT,v));sp=Math.pow(Math.max(0,dot(n,h)),o.metal)*(o.spec??0.75)}
  const f=x=>Math.max(0,Math.min(255,Math.round(x*k+255*sp)));return`rgb(${f(rgb[0])},${f(rgb[1])},${f(rgb[2])})`}
 function face(pts,n,col,o){o=o||{};const cen=pts.reduce((s,p)=>add(s,p),V(0,0,0));const c=mul(cen,1/pts.length);if(o.shadow!==false)shadowPolys.push(pts);
- if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;const pr={t:"f",pts,c:shade(col,n,o,c),z:dz(c)+(o.dz||0),a:o.alpha,ref:c};
+ if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;const pr={t:"f",pts,c:shade(col,n,o,c),z:dz(c)+(o.dz||0),a:o.alpha,ref:c,decal:!!o.decal};
  if(solidCur){solidCur.faces.push(pr);if(!o.decal&&!o.two)solidCur.planes.push({n,d:dot(n,c)});solidCur.cen=add(solidCur.cen,c);return}prims.push(pr)}
 // Bryła wypukła (np. karton): jej ściany sortujemy razem, a inne obiekty rysujemy przed nią lub po niej
 // testem płaszczyzn widocznych ścian — usuwa „przenikanie” dużych ścian przez mniejsze obiekty.
@@ -106,7 +106,7 @@ function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
   c.fillStyle=act?"#1e5aa8":"rgba(27,33,48,.85)";c.beginPath();c.roundRect(q.x-w/2,ly,w,22,11);c.fill();c.fillStyle="#fff";c.textAlign="center";c.textBaseline="middle";c.fillText(txt,q.x,ly+11);c.restore()}}
 function frontOf(S,p){if(!p.ref)return p.z<S.z;for(const pl of S.planes)if(dot(pl.n,p.ref)-pl.d>1e-4)return true;return false}
 function drawPrims(){const solids=prims.filter(p=>p.t==="S").sort((p,q)=>q.z-p.z);let rest=prims.filter(p=>p.t!=="S");const byZ=(p,q)=>q.z-p.z;
- for(const S of solids){const B=[],F=[];for(const p of rest)(frontOf(S,p)?F:B).push(p);B.sort(byZ).forEach(drawOne);S.faces.sort(byZ).forEach(drawOne);rest=F}
+ for(const S of solids){const B=[],F=[];for(const p of rest)(frontOf(S,p)?F:B).push(p);B.sort(byZ).forEach(drawOne);S.faces.sort((p,q)=>(p.decal-q.decal)||byZ(p,q)).forEach(drawOne);rest=F}
  rest.sort(byZ).forEach(drawOne)}
 function drawOne(p){const c=ctx;{if(p.t==="f"){const cp=clipPoly(p.pts);if(!cp)return;const P=cp.map(P2);if(P.some(q=>!q))return;c.fillStyle=p.c;c.strokeStyle=p.c;c.lineWidth=0.7;c.lineJoin="round";if(p.a)c.globalAlpha=p.a;c.beginPath();P.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.fill();if(!p.a)c.stroke();c.globalAlpha=1;return}
   if(p.t==="l"){const cl=clip(p.a,p.b);if(!cl)return;const A=P2(cl[0]),B=P2(cl[1]);if(!A||!B)return;const w=Math.max(1.2,p.w*(A.k+B.k)/2);
