@@ -2,25 +2,29 @@
 // Złap przedmiot → od razu przeciągasz wzdłuż jego osi. Ostatnio chwycony przedmiot zostaje „aktywny” (podświetlony w scenie i na pasku).
 const ptrs=new Map();let pinch=0,grab=null;
 function screenOf(p){VW=SW;VH=SH;VX=0;VY=0;camBasis(cam);return P2(p)}
-let moveTool=null,hoverId=null,downInfo=null;
+let moveTool=null,hoverId=null,downInfo=null,dragLine=null;
+// Przeciąganie wzdłuż osi przedmiotu: punkt osi najbliższy promieniowi spod kursora (stabilne z każdego kąta kamery).
+function axisParam(O,u,x,y){VW=SW;VH=SH;VX=0;VY=0;camBasis(cam);const r=nrm(add(CB.f,add(mul(CB.r,(x-SW/2)/CB.F),mul(CB.up,-(y-SH/2)/CB.F))));
+ const w0=sub(O,CB.pos),b=dot(u,r),den=1-b*b;if(den<0.03)return null;return(b*dot(r,w0)-dot(u,w0))/den}
 function grabList(){return T.grabbables?T.grabbables():[]}
 function hitGrab(x,y,only,extra){let best=null,bd=1e9;for(const g of grabList()){if(only&&g.id!==only)continue;const q=screenOf(g.p);if(!q)continue;const R=Math.max(extra||26,(g.r||0.02)*q.k+(extra?extra-14:12));const d=Math.hypot(x-q.x,y-q.y);if(d<R&&d<bd){bd=d;best=g}}return best}
 function setMoveTool(id,frame){moveTool=moveTool===id?null:id;hideHint();if(moveTool&&frame!==false){const g=grabList().find(q=>q.id===moveTool);if(g){const q=screenOf(g.p);if(!q||q.x<60||q.y<60||q.x>SW-60||q.y>SH-140)goCam({t:g.p,yaw:cam.yaw,pitch:cam.pitch,dist:Math.min(cam.dist,0.6)},600)}}}
 cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);const b=cv.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;
  downInfo={x:e.clientX,y:e.clientY,t:performance.now()};
- if(ptrs.size===0&&e.button===0&&!e.shiftKey){const g=(moveTool&&hitGrab(x,y,moveTool,44))||hitGrab(x,y,null,30);if(g){moveTool=g.id;grab=g;g.onStart&&g.onStart();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,grab:true});cv.style.cursor="grabbing";return}}
+ if(ptrs.size===0&&e.button===0&&!e.shiftKey){const g=(moveTool&&hitGrab(x,y,moveTool,44))||hitGrab(x,y,null,30);if(g){moveTool=g.id;grab=g;g.onStart&&g.onStart();dragLine={O:g.p,u:nrm(g.axis),t:axisParam(g.p,nrm(g.axis),x,y)};ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,grab:true});cv.style.cursor="grabbing";return}}
  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY})});
 cv.addEventListener("pointermove",e=>{if(ptrs.size)return;const b=cv.getBoundingClientRect();const g=hitGrab(e.clientX-b.left,e.clientY-b.top,null,moveTool?44:26);hoverId=g?g.id:null;
  cv.style.cursor=g?"grab":"default"});
 cv.addEventListener("pointerleave",()=>{hoverId=null});
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);const dx=e.clientX-p.x,dy=e.clientY-p.y;ptrs.set(e.pointerId,{...p,x:e.clientX,y:e.clientY});
- if(p.grab&&grab){const a0=screenOf(grab.p),a1=screenOf(add(grab.p,mul(grab.axis,0.01)));if(!a0||!a1)return;const vx=(a1.x-a0.x)/0.01,vy=(a1.y-a0.y)/0.01;if(vx*vx+vy*vy<150*150)return;grab.onMove((dx*vx+dy*vy)/(vx*vx+vy*vy));return}
+ if(p.grab&&grab){const b0=cv.getBoundingClientRect(),t=dragLine&&axisParam(dragLine.O,dragLine.u,e.clientX-b0.left,e.clientY-b0.top);if(t!=null&&dragLine.t!=null){const ds=t-dragLine.t;dragLine.t=t;if(Math.abs(ds)<0.5)grab.onMove(ds);return}
+  const a0=screenOf(grab.p),a1=screenOf(add(grab.p,mul(grab.axis,0.01)));if(!a0||!a1)return;const vx=(a1.x-a0.x)/0.01,vy=(a1.y-a0.y)/0.01;if(vx*vx+vy*vy<150*150)return;grab.onMove((dx*vx+dy*vy)/(vx*vx+vy*vy));return}
  camAnim=null;
  if(ptrs.size===1){if(e.shiftKey||(e.buttons&2)||(e.buttons&4))panBy(dx,dy);else orbitBy(dx,dy)}
  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,bb=cv.getBoundingClientRect();
   if(pinch)zoomAt(cx-bb.left,cy-bb.top,pinch/d);panBy(dx/2,dy/2);pinch=d}});
-const up=e=>{const p=ptrs.get(e.pointerId);ptrs.delete(e.pointerId);if(p&&p.grab&&grab){grab.onEnd&&grab.onEnd();grab=null;cv.style.cursor="grab"}if(ptrs.size<2)pinch=0;};
+const up=e=>{const p=ptrs.get(e.pointerId);ptrs.delete(e.pointerId);if(p&&p.grab&&grab){grab.onEnd&&grab.onEnd();grab=null;dragLine=null;moveTool=null;cv.style.cursor="grab"}if(ptrs.size<2)pinch=0;};
 cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
 // --- swobodna kamera: obrót, przesuwanie, przybliżanie do kursora, latanie WASD ---
 function orbitBy(dx,dy){cam.yaw-=dx*0.007;cam.pitch=Math.max(-0.8,Math.min(1.565,cam.pitch+dy*0.007))}

@@ -50,7 +50,12 @@ function shade(col,n,o,cen){const rgb=rgbOf(col);let d=dot(n,LIGHT);if(o.two)d=M
  if(o.metal){const v=nrm(sub(CB.pos,cen));const h=nrm(add(LIGHT,v));sp=Math.pow(Math.max(0,dot(n,h)),o.metal)*(o.spec??0.75)}
  const f=x=>Math.max(0,Math.min(255,Math.round(x*k+255*sp)));return`rgb(${f(rgb[0])},${f(rgb[1])},${f(rgb[2])})`}
 function face(pts,n,col,o){o=o||{};const cen=pts.reduce((s,p)=>add(s,p),V(0,0,0));const c=mul(cen,1/pts.length);if(o.shadow!==false)shadowPolys.push(pts);
- if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;prims.push({t:"f",pts,c:shade(col,n,o,c),z:dz(c)+(o.dz||0),a:o.alpha})}
+ if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;const pr={t:"f",pts,c:shade(col,n,o,c),z:dz(c)+(o.dz||0),a:o.alpha,ref:c};
+ if(solidCur){solidCur.faces.push(pr);if(!o.decal&&!o.two)solidCur.planes.push({n,d:dot(n,c)});solidCur.cen=add(solidCur.cen,c);return}prims.push(pr)}
+// Bryła wypukła (np. karton): jej ściany sortujemy razem, a inne obiekty rysujemy przed nią lub po niej
+// testem płaszczyzn widocznych ścian — usuwa „przenikanie” dużych ścian przez mniejsze obiekty.
+let solidCur=null;
+function solid(fn){solidCur={faces:[],planes:[],cen:V(0,0,0)};fn();const S=solidCur;solidCur=null;if(!S.faces.length)return;const c=mul(S.cen,1/S.faces.length);prims.push({t:"S",faces:S.faces,planes:S.planes,z:dz(c),ref:c})}
 function frame3(u){const e1=nrm(cross(u,Math.abs(u.z)<0.9?Z:V(1,0,0)));return[e1,cross(u,e1)]}
 function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab),u=mul(ab,1/L);const[e1,e2]=frame3(u);const n=o.n||14,ns=Math.max(1,Math.ceil(L/(o.seg||0.06)));
  const ring=(t,r)=>{const c=add(a,mul(ab,t));return Array.from({length:n},(_,i)=>{const th=(i+(o.rot||0))*2*Math.PI/n;return add(c,add(mul(e1,r*Math.cos(th)),mul(e2,r*Math.sin(th))))})};
@@ -65,14 +70,14 @@ function drawShadows(area){if(!shadowPolys.length)return;if(shCv.width!==cv.widt
  s.fillStyle="#000";s.strokeStyle="#000";s.lineWidth=0.8;for(const poly of shadowPolys){if(poly.some(p=>p.z<-0.0005))continue;const q=poly.map(p=>P2(sub(p,mul(LIGHT,p.z/LIGHT.z))));if(q.some(x=>!x))continue;s.beginPath();q.forEach((x,i)=>i?s.lineTo(x.x,x.y):s.moveTo(x.x,x.y));s.closePath();s.fill();s.stroke()}if(area)s.restore();
  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=0.26;ctx.drawImage(shCv,0,0);ctx.restore()}
 const D={ // API rysowania dla zadania
- cyl,box,band,face,flush:()=>{drawPrims();prims=[]},
+ cyl,box,band,face,solid,flush:()=>{drawPrims();prims=[]},
  faceNow:(pts,n,col,o)=>{o=o||{};const c=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;quadNow(pts,shade(col,n,o,c))},
  shadowsNow:area=>{drawShadows(area);shadowPolys=[]},
  get grabbing(){return grab},
- line:(a,b,w,col,o)=>prims.push({t:"l",a,b,w,col,z:segZ(a,b),...(o||{})}),
+ line:(a,b,w,col,o)=>prims.push({t:"l",a,b,w,col,z:segZ(a,b),ref:lerp(a,b,0.5),...(o||{})}),
  quad:(pts,col,o)=>prims.push({t:"q",pts,col,z:pts.reduce((s,p)=>s+dz(p),0)/pts.length,...(o||{})}),
  hexNut:(p,r,o)=>prims.push({t:"nut",p,r,z:dz(p),...(o||{})}),
- custom:(z,fn)=>prims.push({t:"c",z,fn}),
+ custom:(z,fn,ref)=>prims.push({t:"c",z,fn,ref}),
  quadNow,lineNow,tapeNow,P2,dz,get camPos(){return CB.pos},get pip(){return isPip}};
 // ---------- stały motyw: stół laboratoryjny (sklejka brzozowa, nogi, podłoga) ----------
 // Zadanie podaje scene.table={x0,x1,y0,y1}; blat ma górę na z=0. Rysowany przed sceną zadania,
@@ -99,13 +104,16 @@ function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
     c.beginPath();c.moveTo(x1+ux*sg*2,y1+uy*sg*2);c.lineTo(x1-ux*sg*7-uy*6,y1-uy*sg*7+ux*6);c.lineTo(x1-ux*sg*7+uy*6,y1-uy*sg*7-ux*6);c.closePath();c.fillStyle=col;c.fill()}}
   const txt=act?(g.hint||"przeciągnij"):(g.label||"")+" — złap i przeciągnij";c.font="600 12px system-ui";const w=c.measureText(txt).width+16;const ly=q.y+R+(act?40:14);
   c.fillStyle=act?"#1e5aa8":"rgba(27,33,48,.85)";c.beginPath();c.roundRect(q.x-w/2,ly,w,22,11);c.fill();c.fillStyle="#fff";c.textAlign="center";c.textBaseline="middle";c.fillText(txt,q.x,ly+11);c.restore()}}
-function drawPrims(){prims.sort((p,q)=>q.z-p.z);const c=ctx;
- for(const p of prims){if(p.t==="f"){const cp=clipPoly(p.pts);if(!cp)continue;const P=cp.map(P2);if(P.some(q=>!q))continue;c.fillStyle=p.c;c.strokeStyle=p.c;c.lineWidth=0.7;c.lineJoin="round";if(p.a)c.globalAlpha=p.a;c.beginPath();P.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.fill();if(!p.a)c.stroke();c.globalAlpha=1;continue}
-  if(p.t==="l"){const cl=clip(p.a,p.b);if(!cl)continue;const A=P2(cl[0]),B=P2(cl[1]);if(!A||!B)continue;const w=Math.max(1.2,p.w*(A.k+B.k)/2);
+function frontOf(S,p){if(!p.ref)return p.z<S.z;for(const pl of S.planes)if(dot(pl.n,p.ref)-pl.d>1e-4)return true;return false}
+function drawPrims(){const solids=prims.filter(p=>p.t==="S").sort((p,q)=>q.z-p.z);let rest=prims.filter(p=>p.t!=="S");const byZ=(p,q)=>q.z-p.z;
+ for(const S of solids){const B=[],F=[];for(const p of rest)(frontOf(S,p)?F:B).push(p);B.sort(byZ).forEach(drawOne);S.faces.sort(byZ).forEach(drawOne);rest=F}
+ rest.sort(byZ).forEach(drawOne)}
+function drawOne(p){const c=ctx;{if(p.t==="f"){const cp=clipPoly(p.pts);if(!cp)return;const P=cp.map(P2);if(P.some(q=>!q))return;c.fillStyle=p.c;c.strokeStyle=p.c;c.lineWidth=0.7;c.lineJoin="round";if(p.a)c.globalAlpha=p.a;c.beginPath();P.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.fill();if(!p.a)c.stroke();c.globalAlpha=1;return}
+  if(p.t==="l"){const cl=clip(p.a,p.b);if(!cl)return;const A=P2(cl[0]),B=P2(cl[1]);if(!A||!B)return;const w=Math.max(1.2,p.w*(A.k+B.k)/2);
    c.lineCap=p.cap||"round";if(p.metal){c.lineCap="butt";c.strokeStyle="#565d66";c.lineWidth=w+1.5;c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.stroke();c.strokeStyle=p.col;c.lineWidth=w;c.stroke();c.strokeStyle="rgba(255,255,255,.75)";c.lineWidth=Math.max(1,w*.2);c.stroke();if(p.after)p.after(c,w)}
    else{c.strokeStyle=p.col;c.lineWidth=w;c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.stroke();if(p.fray){c.strokeStyle="rgba(255,255,255,.55)";c.lineWidth=Math.max(1,w*.15);c.setLineDash([2,3]);c.stroke();c.setLineDash([])}}}
   else if(p.t==="q")quadNow(p.pts,p.col);
-  else if(p.t==="nut"){const q=P2(p.p);if(!q)continue;const r=p.r*q.k;const g2=c.createLinearGradient(q.x-r,q.y-r,q.x+r,q.y+r);g2.addColorStop(0,"#c9ced5");g2.addColorStop(1,"#6b727b");c.fillStyle=g2;c.strokeStyle="#3f454c";c.lineWidth=1;c.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;c.lineTo(q.x+r*Math.cos(a),q.y+r*Math.sin(a))}c.closePath();c.fill();c.stroke();c.fillStyle="#2f343a";c.beginPath();c.arc(q.x,q.y,r*.55,0,7);c.fill();
+  else if(p.t==="nut"){const q=P2(p.p);if(!q)return;const r=p.r*q.k;const g2=c.createLinearGradient(q.x-r,q.y-r,q.x+r,q.y+r);g2.addColorStop(0,"#c9ced5");g2.addColorStop(1,"#6b727b");c.fillStyle=g2;c.strokeStyle="#3f454c";c.lineWidth=1;c.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;c.lineTo(q.x+r*Math.cos(a),q.y+r*Math.sin(a))}c.closePath();c.fill();c.stroke();c.fillStyle="#2f343a";c.beginPath();c.arc(q.x,q.y,r*.55,0,7);c.fill();
    if(!isPip&&p.ring){c.strokeStyle="#ffd23f";c.lineWidth=3;c.beginPath();c.arc(q.x,q.y,r+6,0,7);c.stroke()}}
   else if(p.t==="c")p.fn(c)}}
 function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBasis(view.cam);prims=[];shadowPolys=[];const c=ctx;
@@ -131,25 +139,29 @@ function goCam(v,d){camAnim={t0:performance.now(),d:d||900,a:{t:cam.t,yaw:cam.ya
 // Złap przedmiot → od razu przeciągasz wzdłuż jego osi. Ostatnio chwycony przedmiot zostaje „aktywny” (podświetlony w scenie i na pasku).
 const ptrs=new Map();let pinch=0,grab=null;
 function screenOf(p){VW=SW;VH=SH;VX=0;VY=0;camBasis(cam);return P2(p)}
-let moveTool=null,hoverId=null,downInfo=null;
+let moveTool=null,hoverId=null,downInfo=null,dragLine=null;
+// Przeciąganie wzdłuż osi przedmiotu: punkt osi najbliższy promieniowi spod kursora (stabilne z każdego kąta kamery).
+function axisParam(O,u,x,y){VW=SW;VH=SH;VX=0;VY=0;camBasis(cam);const r=nrm(add(CB.f,add(mul(CB.r,(x-SW/2)/CB.F),mul(CB.up,-(y-SH/2)/CB.F))));
+ const w0=sub(O,CB.pos),b=dot(u,r),den=1-b*b;if(den<0.03)return null;return(b*dot(r,w0)-dot(u,w0))/den}
 function grabList(){return T.grabbables?T.grabbables():[]}
 function hitGrab(x,y,only,extra){let best=null,bd=1e9;for(const g of grabList()){if(only&&g.id!==only)continue;const q=screenOf(g.p);if(!q)continue;const R=Math.max(extra||26,(g.r||0.02)*q.k+(extra?extra-14:12));const d=Math.hypot(x-q.x,y-q.y);if(d<R&&d<bd){bd=d;best=g}}return best}
 function setMoveTool(id,frame){moveTool=moveTool===id?null:id;hideHint();if(moveTool&&frame!==false){const g=grabList().find(q=>q.id===moveTool);if(g){const q=screenOf(g.p);if(!q||q.x<60||q.y<60||q.x>SW-60||q.y>SH-140)goCam({t:g.p,yaw:cam.yaw,pitch:cam.pitch,dist:Math.min(cam.dist,0.6)},600)}}}
 cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);const b=cv.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;
  downInfo={x:e.clientX,y:e.clientY,t:performance.now()};
- if(ptrs.size===0&&e.button===0&&!e.shiftKey){const g=(moveTool&&hitGrab(x,y,moveTool,44))||hitGrab(x,y,null,30);if(g){moveTool=g.id;grab=g;g.onStart&&g.onStart();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,grab:true});cv.style.cursor="grabbing";return}}
+ if(ptrs.size===0&&e.button===0&&!e.shiftKey){const g=(moveTool&&hitGrab(x,y,moveTool,44))||hitGrab(x,y,null,30);if(g){moveTool=g.id;grab=g;g.onStart&&g.onStart();dragLine={O:g.p,u:nrm(g.axis),t:axisParam(g.p,nrm(g.axis),x,y)};ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,grab:true});cv.style.cursor="grabbing";return}}
  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY})});
 cv.addEventListener("pointermove",e=>{if(ptrs.size)return;const b=cv.getBoundingClientRect();const g=hitGrab(e.clientX-b.left,e.clientY-b.top,null,moveTool?44:26);hoverId=g?g.id:null;
  cv.style.cursor=g?"grab":"default"});
 cv.addEventListener("pointerleave",()=>{hoverId=null});
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);const dx=e.clientX-p.x,dy=e.clientY-p.y;ptrs.set(e.pointerId,{...p,x:e.clientX,y:e.clientY});
- if(p.grab&&grab){const a0=screenOf(grab.p),a1=screenOf(add(grab.p,mul(grab.axis,0.01)));if(!a0||!a1)return;const vx=(a1.x-a0.x)/0.01,vy=(a1.y-a0.y)/0.01;if(vx*vx+vy*vy<150*150)return;grab.onMove((dx*vx+dy*vy)/(vx*vx+vy*vy));return}
+ if(p.grab&&grab){const b0=cv.getBoundingClientRect(),t=dragLine&&axisParam(dragLine.O,dragLine.u,e.clientX-b0.left,e.clientY-b0.top);if(t!=null&&dragLine.t!=null){const ds=t-dragLine.t;dragLine.t=t;if(Math.abs(ds)<0.5)grab.onMove(ds);return}
+  const a0=screenOf(grab.p),a1=screenOf(add(grab.p,mul(grab.axis,0.01)));if(!a0||!a1)return;const vx=(a1.x-a0.x)/0.01,vy=(a1.y-a0.y)/0.01;if(vx*vx+vy*vy<150*150)return;grab.onMove((dx*vx+dy*vy)/(vx*vx+vy*vy));return}
  camAnim=null;
  if(ptrs.size===1){if(e.shiftKey||(e.buttons&2)||(e.buttons&4))panBy(dx,dy);else orbitBy(dx,dy)}
  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,bb=cv.getBoundingClientRect();
   if(pinch)zoomAt(cx-bb.left,cy-bb.top,pinch/d);panBy(dx/2,dy/2);pinch=d}});
-const up=e=>{const p=ptrs.get(e.pointerId);ptrs.delete(e.pointerId);if(p&&p.grab&&grab){grab.onEnd&&grab.onEnd();grab=null;cv.style.cursor="grab"}if(ptrs.size<2)pinch=0;};
+const up=e=>{const p=ptrs.get(e.pointerId);ptrs.delete(e.pointerId);if(p&&p.grab&&grab){grab.onEnd&&grab.onEnd();grab=null;dragLine=null;moveTool=null;cv.style.cursor="grab"}if(ptrs.size<2)pinch=0;};
 cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
 // --- swobodna kamera: obrót, przesuwanie, przybliżanie do kursora, latanie WASD ---
 function orbitBy(dx,dy){cam.yaw-=dx*0.007;cam.pitch=Math.max(-0.8,Math.min(1.565,cam.pitch+dy*0.007))}
@@ -314,5 +326,5 @@ function boot(){const tasks=window.LAB_TASKS||[];renderCatalog(tasks);window.add
  const s=document.createElement("script");s.src=t.file;document.body.appendChild(s)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else setTimeout(boot,0);
 
-return{defineTask,params,screenOf,V,add,sub,mul,dot,cross,len,nrm,lerp,Z,goCam,flash,showHint,hideHint,viz,fmt,num,esc,gauss,get seed(){return seed},get P(){return P},VERSION};
+return{_grabs:()=>grabList(),defineTask,params,screenOf,V,add,sub,mul,dot,cross,len,nrm,lerp,Z,goCam,flash,showHint,hideHint,viz,fmt,num,esc,gauss,get seed(){return seed},get P(){return P},VERSION};
 })();

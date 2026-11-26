@@ -69,12 +69,13 @@ function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V
  const ry0=-0.016,ry1=-0.046,rh=0.002;D.faceNow([V(0,ry1,rh),V(0.60,ry1,rh),V(0.60,ry1,0),V(0,ry1,0)],mul(Y,-1),"#d9d9cf");D.faceNow([V(0.60,ry1,0),V(0.60,ry0,0),V(0.60,ry0,rh),V(0.60,ry1,rh)],X,"#d9d9cf");
  D.tapeNow(V(0,ry0,rh-0.0006),V(1,0,0),V(0,-1,0),0.60,0.03,{color:"rgba(250,250,244,.97)"});
  // karton (ściana x = 0)
- const bx=0.15,by=0.18,cb="#c4955f",o2={dz:0.25,amb:0.62};
+ D.solid(()=>{const bx=0.15,by=0.18,cb="#c4955f",o2={amb:0.62};
  D.box(V(-bx,0,BOXH/2),mul(X,bx),mul(Y,by),mul(Z,BOXH/2),cb,{...o2,cols:["#c09366",cb,cb,cb,"#c99c6c",cb]});
- D.face([V(0.0006,-0.03,BOXH),V(0.0006,0.03,BOXH),V(0.0006,0.03,BOXH-0.06),V(0.0006,-0.03,BOXH-0.06)],X,"#a87c4c",{...o2,dz:0.24,shadow:false});
- D.face([V(-bx-0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH-0.06),V(-bx-0.03,-by-0.0006,BOXH-0.06)],mul(Y,-1),"#a87c4c",{...o2,dz:0.24,shadow:false});
- D.face([V(-bx-0.03,-by,BOXH+0.0006),V(-bx+0.03,-by,BOXH+0.0006),V(-bx+0.03,by,BOXH+0.0006),V(-bx-0.03,by,BOXH+0.0006)],Z,"#c9a36f",{...o2,dz:0.24,shadow:false});
- const a=A();D.face([V(0.0008,-0.02,a.z-0.013),V(0.0008,0.02,a.z-0.013),V(0.0008,0.02,a.z+0.013),V(0.0008,-0.02,a.z+0.013)].reverse(),X,"#ecebdc",{dz:0.05,shadow:false,amb:0.7});
+ D.face([V(0.0006,-0.03,BOXH),V(0.0006,0.03,BOXH),V(0.0006,0.03,BOXH-0.06),V(0.0006,-0.03,BOXH-0.06)],X,"#a87c4c",{...o2,decal:true,dz:-0.001,shadow:false});
+ D.face([V(-bx-0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH-0.06),V(-bx-0.03,-by-0.0006,BOXH-0.06)],mul(Y,-1),"#a87c4c",{...o2,decal:true,dz:-0.001,shadow:false});
+ D.face([V(-bx-0.03,-by,BOXH+0.0006),V(-bx+0.03,-by,BOXH+0.0006),V(-bx+0.03,by,BOXH+0.0006),V(-bx-0.03,by,BOXH+0.0006)],Z,"#c9a36f",{...o2,decal:true,dz:-0.001,shadow:false});
+ D.face([V(0.0008,-0.02,st.zA-0.013),V(0.0008,0.02,st.zA-0.013),V(0.0008,0.02,st.zA+0.013),V(0.0008,-0.02,st.zA+0.013)].reverse(),X,"#ecebdc",{decal:true,dz:-0.001,shadow:false,amb:0.7});});
+ const a=A();
  // nić i ołówek (sześciokątny, lakierowany)
  if(st.laid){const y0=-0.058,a0=st.lay,Pl=V(a0+D_P,y0,0.004),tl=V(a0,y0,0.004);pencil(D,Pl,tl);const e=V(a0+D_P+Lc(),y0,0.0007);D.line(add(Pl,V(0.004,0,-0.003)),e,0.0007,"#2b2b2b");
   D.face([V(e.x-0.006,y0-0.009,0.0009),V(e.x+0.012,y0-0.009,0.0009),V(e.x+0.012,y0+0.009,0.0009),V(e.x-0.006,y0+0.009,0.0009)],Z,"#ecebdc",{shadow:false,amb:0.7,alpha:0.85})}
@@ -84,7 +85,7 @@ function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V
  D.cyl(V(hx+0.008,hy-0.012,0.008),V(hx+0.026,hy-0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});D.cyl(V(hx+0.008,hy+0.012,0.008),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
  D.cyl(V(hx+0.026,hy-0.012,0.012),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
  // linijka pionowa (przezroczysta, przed płaszczyzną ołówka)
- const r=st.r;D.custom(D.dz(V(r+0.015,-0.008,0.06))-0.05,()=>D.tapeNow(V(r,-0.008,0),V(0,0,1),V(1,0,0),0.20,0.03,{color:"rgba(250,250,244,.78)"}));
+ const r=st.r;D.custom(D.dz(V(r+0.015,-0.008,0.06))-0.05,()=>D.tapeNow(V(r,-0.008,0),V(0,0,1),V(1,0,0),0.20,0.03,{color:"rgba(250,250,244,.78)"}),V(r+0.015,-0.008,0.1));
 }
 
 LAB.defineTask({id:"of73-2-olowek",
