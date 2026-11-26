@@ -4,10 +4,12 @@
 // i ramka Lupy idą na przezroczystą warstwę 2D nad sceną (#cv), w tych samych współrzędnych ekranu (P2).
 const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 const glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
-const gl=glc.getContext("webgl2",{antialias:true,stencil:true,alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:false,powerPreference:"high-performance"});
+// WebGL2, a gdy niedostępny (np. przeglądarki wbudowane w aplikacje, stare GPU) — WebGL1; shadery w GLSL ES 1.00 działają w obu
+const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:false};
+const gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getContext("experimental-webgl",GLOPT)||glc.getContext("webgl",{stencil:true})||glc.getContext("webgl");
 // utrata kontekstu GPU (częsta na tabletach przy braku pamięci): wstrzymaj rysowanie i odbuduj zasoby po przywróceniu
 let glLost=false;glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true});glc.addEventListener("webglcontextrestored",()=>{initGL();glLost=false});
-if(!gl){const m=document.createElement("div");m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie obsługuje WebGL2 — laboratorium potrzebuje go do grafiki 3D.";cv.parentNode.appendChild(m)}
+if(!gl){const m=document.createElement("div");m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
 const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;let pipOn=true;
 let VW,VH,VX,VY,CB,isPip=false;
 // gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
@@ -50,13 +52,13 @@ function band(path,w,width,col,o){o=Object.assign({two:true},o||{});for(let i=0;
 
 // ---------- taśma / linijka z podziałką (tekstura w kafelkach po 5 cm, ostra przy dużym przybliżeniu) ----------
 // o: początek (0 cm), d: kierunek wzdłuż, w: w poprzek (od krawędzi z podziałką w głąb), L, W: długość i szerokość [m]
-const TILE=0.05,TPX=768,texCache=new Map();
+const TILE=0.05,TPX=1024,texCache=new Map();const pow2=n=>2**Math.ceil(Math.log2(n));
 function tapeTile(W,i,o,mir){const key=W+"|"+i+"|"+(o.labelUp||"edge")+"|"+mir;let t=texCache.get(key);if(t)return t;
- const h=Math.max(64,Math.round(TPX*W/TILE)),c=document.createElement("canvas");c.width=TPX;c.height=h;const g=c.getContext("2d");const pm=TPX/(TILE*1000); // px na mm
+ const h=pow2(Math.max(64,Math.round(TPX*W/TILE))),c=document.createElement("canvas");c.width=TPX;c.height=h;const g=c.getContext("2d");const pm=TPX/(TILE*1000),pv=h/(W*1000); // px na mm wzdłuż i w poprzek (tekstury 2^n — wymóg WebGL1)
  g.clearRect(0,0,TPX,h);g.strokeStyle="#1d1d1d";g.fillStyle="#1d1d1d";const mm0=Math.round(i*TILE*1000);
- for(let mm=mm0-12;mm<=mm0+62;mm++){if(mm<0)continue;const x=(mm-mm0)*pm;const Lt=(mm%10===0?6.5:mm%5===0?4.5:3)*pm;g.lineWidth=mm%10===0?0.3*pm:0.17*pm;g.beginPath();g.moveTo(x,0);g.lineTo(x,Lt);g.stroke();
-  if(mm%10===0){g.font=`700 ${4*pm}px system-ui,sans-serif`;g.textAlign="center";g.textBaseline="middle";const yl=Math.min(10.5*pm,h-2.2*pm);
-   g.save();g.translate(x,yl);if(mir)g.scale(1,-1);if(o.labelUp==="d")g.rotate(mir?-Math.PI/2:Math.PI/2);g.fillText(String(mm/10),0,0);g.restore()}}
+ for(let mm=mm0-12;mm<=mm0+62;mm++){if(mm<0)continue;const x=(mm-mm0)*pm;const Lt=(mm%10===0?6.5:mm%5===0?4.5:3)*pv;g.lineWidth=mm%10===0?0.3*pm:0.17*pm;g.beginPath();g.moveTo(x,0);g.lineTo(x,Lt);g.stroke();
+  if(mm%10===0){g.font=`700 ${4*pm}px system-ui,sans-serif`;g.textAlign="center";g.textBaseline="middle";const yl=Math.min(10.5*pv,h-2.2*pv);
+   g.save();g.translate(x,yl);g.scale(1,pv/pm);if(mir)g.scale(1,-1);if(o.labelUp==="d")g.rotate(mir?-Math.PI/2:Math.PI/2);g.fillText(String(mm/10),0,0);g.restore()}}
  const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
  const af=gl.getExtension("EXT_texture_filter_anisotropic");if(af)gl.texParameterf(gl.TEXTURE_2D,af.TEXTURE_MAX_ANISOTROPY_EXT,8);texCache.set(key,tx);return tx}
@@ -69,15 +71,13 @@ function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;c
 function prog(vs,fs){const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(x);return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);return p}
 let PC,PT,bufC,bufT;
-function initGL(){texCache.clear();PC=prog(`#version 300 es
-in vec3 p;in vec4 c;uniform mat4 M;out vec4 vc;void main(){gl_Position=M*vec4(p,1.0);vc=c;}`,`#version 300 es
-precision highp float;in vec4 vc;out vec4 o;void main(){o=vc;}`);
- PT=prog(`#version 300 es
-in vec3 p;in vec2 t;uniform mat4 M;out vec2 vt;void main(){gl_Position=M*vec4(p,1.0);vt=t;}`,`#version 300 es
-precision highp float;in vec2 vt;uniform sampler2D s;out vec4 o;void main(){o=texture(s,vt);}`);
+function initGL(){texCache.clear();PC=prog(`attribute vec3 p;attribute vec4 c;uniform mat4 M;varying vec4 vc;void main(){gl_Position=M*vec4(p,1.0);vc=c;}`,
+ `precision mediump float;varying vec4 vc;void main(){gl_FragColor=vc;}`);
+ PT=prog(`attribute vec3 p;attribute vec2 t;uniform mat4 M;varying vec2 vt;void main(){gl_Position=M*vec4(p,1.0);vt=t;}`,
+ `precision mediump float;varying vec2 vt;uniform sampler2D s;void main(){gl_FragColor=texture2D(s,vt);}`);
  bufC=gl.createBuffer();bufT=gl.createBuffer()}
 if(gl)initGL();
-const NEAR=0.004,FAR=80;
+const NEAR=0.004,FAR=25;
 function viewMatrix(){const sx=2*CB.F/VW,sy=2*CB.F/VH,A=(FAR+NEAR)/(FAR-NEAR),B=-2*FAR*NEAR/(FAR-NEAR);const{r,up,f,pos}=CB;
  const R=[[r.x*sx,r.y*sx,r.z*sx,-dot(r,pos)*sx],[up.x*sy,up.y*sy,up.z*sy,-dot(up,pos)*sy],[f.x*A,f.y*A,f.z*A,-dot(f,pos)*A+B],[f.x,f.y,f.z,-dot(f,pos)]];
  const m=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)m[c*4+k]=R[k][c];return m}
