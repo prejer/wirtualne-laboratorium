@@ -88,7 +88,9 @@ function drawTable(tb){const X=V(1,0,0),Y=V(0,1,0);const th=tb.th||0.028,fz=tb.f
  quadNow([V(x0-pad,y0-pad,fz),V(x1+pad,y0-pad,fz),V(x1+pad,y1+pad,fz),V(x0-pad,y1+pad,fz)],"#a49c90");
  if(!isPip){for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;stripNow(V(x0-pad,y,fz+0.0005),V(x1+pad,y,fz+0.0005),0.004,"rgba(0,0,0,.06)")}}
  const li=0.05,lh=(-fz-th)/2,legs=()=>{for(const[x,y]of[[x0+li,y0+li],[x1-li,y0+li],[x0+li,y1-li],[x1-li,y1-li]])solid(()=>box(V(x,y,-th-lh),mul(X,0.022),mul(Y,0.022),mul(Z,lh),"#b08d5f"));
-  for(const y of[y0+li,y1-li])solid(()=>box(V((x0+x1)/2,y,-th-0.04),mul(X,(x1-x0)/2-li),mul(Y,0.01),mul(Z,0.04),"#bd9a6b"))};
+  const lw=0.022,ax=(x1-x0)/2-li-lw-0.0005,ay=(y1-y0)/2-li-lw-0.0005; // oskrzynienie między nogami (bez przenikania brył)
+  for(const y of[y0+li,y1-li])solid(()=>box(V((x0+x1)/2,y,-th-0.04),mul(X,ax),mul(Y,0.009),mul(Z,0.04),"#bd9a6b"));
+  for(const x of[x0+li,x1-li])solid(()=>box(V(x,(y0+y1)/2,-th-0.04),mul(X,0.009),mul(Y,ay),mul(Z,0.04),"#bd9a6b"))};
  if(cp.z<=0){ // kamera pod blatem: blat i nogi to bryły w zwykłym przebiegu — blat zasłania wszystko, co na nim leży
   legs();solid(()=>box(V((x0+x1)/2,(y0+y1)/2,-th/2),mul(X,(x1-x0)/2),mul(Y,(y1-y0)/2),mul(Z,th/2),"#d4b283",{cols:["#c9a675","#c9a675","#d4b283","#d4b283","#e2c597","#a88a62"],shadow:false}));return}
  // kamera nad blatem: najpierw to, co pod blatem, potem blat — przedmioty na stole rysują się na nim
