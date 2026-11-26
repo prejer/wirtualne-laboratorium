@@ -75,7 +75,7 @@ function defineTask(cfg){
  const tb=cfg.scene.table||null;
  T={...cfg,draw:cfg.scene.draw,table:tb,light:cfg.scene.light,pip:cfg.lupa||null,
   shadowArea:cfg.scene.shadowArea||(tb?[V(tb.x0,tb.y0,0),V(tb.x1,tb.y0,0),V(tb.x1,tb.y1,0),V(tb.x0,tb.y1,0)]:null),
-  camMinZ:cfg.scene.camMinZ??(tb?0.012:null),
+  camMinZ:cfg.scene.camMinZ??(tb?(tb.floor??-0.75)+0.03:null),
   movables,actions:cfg.actions||[],views:cfg.views,
   grabbables:()=>movables.map(m=>{const g=m.grab();return g?{...g,id:m.id,label:m.label,hint:g.hint||m.hint}:null}).filter(Boolean)};
  run()}

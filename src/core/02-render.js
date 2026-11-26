@@ -67,13 +67,15 @@ function stripNow(a,b,w,col){const d=nrm(sub(b,a)),n=mul(nrm(V(-d.y,d.x,0)),w/2)
 function drawTable(tb){const X=V(1,0,0),Y=V(0,1,0);const th=tb.th||0.028,fz=tb.floor??-0.75,{x0,x1,y0,y1}=tb,cp=CB.pos,pad=3;
  quadNow([V(x0-pad,y0-pad,fz),V(x1+pad,y0-pad,fz),V(x1+pad,y1+pad,fz),V(x0-pad,y1+pad,fz)],"#a49c90");
  if(!isPip){for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;stripNow(V(x0-pad,y,fz+0.0005),V(x1+pad,y,fz+0.0005),0.004,"rgba(0,0,0,.06)")}}
- const li=0.05,lh=(-fz-th)/2;for(const[x,y]of[[x0+li,y0+li],[x1-li,y0+li],[x0+li,y1-li],[x1-li,y1-li]])box(V(x,y,-th-lh),mul(X,0.022),mul(Y,0.022),mul(Z,lh),"#b08d5f");
- for(const y of[y0+li,y1-li])box(V((x0+x1)/2,y,-th-0.04),mul(X,(x1-x0)/2-li),mul(Y,0.01),mul(Z,0.04),"#bd9a6b");
- drawPrims();prims=[];
+ const li=0.05,lh=(-fz-th)/2,legs=()=>{for(const[x,y]of[[x0+li,y0+li],[x1-li,y0+li],[x0+li,y1-li],[x1-li,y1-li]])solid(()=>box(V(x,y,-th-lh),mul(X,0.022),mul(Y,0.022),mul(Z,lh),"#b08d5f"));
+  for(const y of[y0+li,y1-li])solid(()=>box(V((x0+x1)/2,y,-th-0.04),mul(X,(x1-x0)/2-li),mul(Y,0.01),mul(Z,0.04),"#bd9a6b"))};
+ if(cp.z<=0){ // kamera pod blatem: blat i nogi to bryły w zwykłym przebiegu — blat zasłania wszystko, co na nim leży
+  legs();solid(()=>box(V((x0+x1)/2,(y0+y1)/2,-th/2),mul(X,(x1-x0)/2),mul(Y,(y1-y0)/2),mul(Z,th/2),"#d4b283",{cols:["#c9a675","#c9a675","#d4b283","#d4b283","#e2c597","#a88a62"],shadow:false}));return}
+ // kamera nad blatem: najpierw to, co pod blatem, potem blat — przedmioty na stole rysują się na nim
+ legs();drawPrims();prims=[];
  const t=[V(x0,y0,0),V(x1,y0,0),V(x1,y1,0),V(x0,y1,0)],b=t.map(p=>add(p,V(0,0,-th)));const fn=(pts,n,col)=>{const c=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),0.25);if(dot(n,sub(cp,c))>0)quadNow(pts,shade(col,n,{},c))};
  fn([t[1],t[0],b[0],b[1]],mul(Y,-1),"#d4b283");fn([t[3],t[2],b[2],b[3]],Y,"#d4b283");fn([t[2],t[1],b[1],b[2]],X,"#c9a675");fn([t[0],t[3],b[3],b[0]],mul(X,-1),"#c9a675");
- if(cp.z>0){quadNow(t,"#e2c597");if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);stripNow(V(x0,y,0.0001),V(x1,y+0.004*Math.sin(k*1.7),0.0001),0.0012,"rgba(140,95,45,.10)")}}}
- else quadNow(b,"#a88a62")}
+ quadNow(t,"#e2c597");if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);stripNow(V(x0,y,0.0001),V(x1,y+0.004*Math.sin(k*1.7),0.0001),0.0012,"rgba(140,95,45,.10)")}}}
 function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
  for(const g of L){const act=g.id===moveTool,hov=g.id===hoverId;if(!act&&!hov)continue;const q=P2(g.p);if(!q)continue;const q1=P2(add(g.p,mul(g.axis,0.01)));
   let ux=1,uy=0;if(q1){const dx=q1.x-q.x,dy=q1.y-q.y,l=Math.hypot(dx,dy);if(l>0.5){ux=dx/l;uy=dy/l}}
@@ -85,7 +87,9 @@ function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
   const txt=act?(g.hint||"przeciągnij"):(g.label||"")+" — złap i przeciągnij";c.font="600 12px system-ui";const w=c.measureText(txt).width+16;const ly=q.y+R+(act?40:14);
   c.fillStyle=act?"#1e5aa8":"rgba(27,33,48,.85)";c.beginPath();c.roundRect(q.x-w/2,ly,w,22,11);c.fill();c.fillStyle="#fff";c.textAlign="center";c.textBaseline="middle";c.fillText(txt,q.x,ly+11);c.restore()}}
 function frontOf(S,p){if(!p.ref)return p.z<S.z;for(const pl of S.planes)if(dot(pl.n,p.ref)-pl.d>1e-4)return true;return false}
-function drawPrims(){const solids=prims.filter(p=>p.t==="S").sort((p,q)=>q.z-p.z);let rest=prims.filter(p=>p.t!=="S");const byZ=(p,q)=>q.z-p.z;
+// kolejność brył: S rysujemy po R, jeśli środek S leży przed którąś widoczną ścianą R (remis → odległość)
+function orderSolids(arr){const rem=arr.sort((p,q)=>q.z-p.z).slice(),out=[];while(rem.length){let i=rem.findIndex(S=>!rem.some(R=>R!==S&&frontOf(R,S)&&!frontOf(S,R)));if(i<0)i=0;out.push(rem.splice(i,1)[0])}return out}
+function drawPrims(){const solids=orderSolids(prims.filter(p=>p.t==="S"));let rest=prims.filter(p=>p.t!=="S");const byZ=(p,q)=>q.z-p.z;
  for(const S of solids){const B=[],F=[];for(const p of rest)(frontOf(S,p)?F:B).push(p);B.sort(byZ).forEach(drawOne);S.faces.sort((p,q)=>(p.decal-q.decal)||byZ(p,q)).forEach(drawOne);rest=F}
  rest.sort(byZ).forEach(drawOne)}
 function drawOne(p){const c=ctx;{if(p.t==="f"){const cp=clipPoly(p.pts);if(!cp)return;const P=cp.map(P2);if(P.some(q=>!q))return;c.fillStyle=p.c;c.strokeStyle=p.c;c.lineWidth=0.7;c.lineJoin="round";if(p.a)c.globalAlpha=p.a;c.beginPath();P.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.fill();if(!p.a)c.stroke();c.globalAlpha=1;return}
