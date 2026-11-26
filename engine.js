@@ -24,11 +24,15 @@ let T=null; // znormalizowana konfiguracja aktywnego zadania
 // i ramka Lupy idą na przezroczystą warstwę 2D nad sceną (#cv), w tych samych współrzędnych ekranu (P2).
 const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 const glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
-const gl=glc.getContext("webgl2",{antialias:true,stencil:true,alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:true});
+const gl=glc.getContext("webgl2",{antialias:true,stencil:true,alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:false,powerPreference:"high-performance"});
+// utrata kontekstu GPU (częsta na tabletach przy braku pamięci): wstrzymaj rysowanie i odbuduj zasoby po przywróceniu
+let glLost=false;glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true});glc.addEventListener("webglcontextrestored",()=>{initGL();glLost=false});
 if(!gl){const m=document.createElement("div");m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie obsługuje WebGL2 — laboratorium potrzebuje go do grafiki 3D.";cv.parentNode.appendChild(m)}
 const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;let pipOn=true;
 let VW,VH,VX,VY,CB,isPip=false;
-function resize(){const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);SW=b.width;SH=b.height;for(const c of[cv,glc]){c.width=Math.round(SW*dpr);c.height=Math.round(SH*dpr)}}
+// gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
+let gdpr=1;function resize(){const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
+ cv.width=Math.round(SW*dpr);cv.height=Math.round(SH*dpr);glc.width=Math.round(SW*gdpr);glc.height=Math.round(SH*gdpr)}
 function camBasis(c){const cp=Math.cos(c.pitch);const pos=add(c.t,V(c.dist*cp*Math.sin(c.yaw),-c.dist*cp*Math.cos(c.yaw),c.dist*Math.sin(c.pitch)));
  const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5}}
 function P2(p){const d=sub(p,CB.pos);const zc=dot(d,CB.f);if(zc<0.01)return null;return{x:VX+VW/2+dot(d,CB.r)*CB.F/zc,y:VY+VH/2-dot(d,CB.up)*CB.F/zc,k:CB.F/zc}}
@@ -85,13 +89,14 @@ function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;c
 function prog(vs,fs){const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(x);return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);return p}
 let PC,PT,bufC,bufT;
-if(gl){PC=prog(`#version 300 es
+function initGL(){texCache.clear();PC=prog(`#version 300 es
 in vec3 p;in vec4 c;uniform mat4 M;out vec4 vc;void main(){gl_Position=M*vec4(p,1.0);vc=c;}`,`#version 300 es
 precision highp float;in vec4 vc;out vec4 o;void main(){o=vc;}`);
  PT=prog(`#version 300 es
 in vec3 p;in vec2 t;uniform mat4 M;out vec2 vt;void main(){gl_Position=M*vec4(p,1.0);vt=t;}`,`#version 300 es
 precision highp float;in vec2 vt;uniform sampler2D s;out vec4 o;void main(){o=texture(s,vt);}`);
  bufC=gl.createBuffer();bufT=gl.createBuffer()}
+if(gl)initGL();
 const NEAR=0.004,FAR=80;
 function viewMatrix(){const sx=2*CB.F/VW,sy=2*CB.F/VH,A=(FAR+NEAR)/(FAR-NEAR),B=-2*FAR*NEAR/(FAR-NEAR);const{r,up,f,pos}=CB;
  const R=[[r.x*sx,r.y*sx,r.z*sx,-dot(r,pos)*sx],[up.x*sy,up.y*sy,up.z*sy,-dot(up,pos)*sy],[f.x*A,f.y*A,f.z*A,-dot(f,pos)*A+B],[f.x,f.y,f.z,-dot(f,pos)]];
@@ -146,7 +151,7 @@ function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
 // ---------- jeden widok: geometria → GL (głębia) → warstwa 2D ----------
 function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBasis(view.cam);OP=[];TR=[];TX=[];shadowPolys=[];
  if(T.table)drawTable(T.table);T.draw(D);
- if(gl){const x=Math.round(VX*dpr),y=Math.round((SH-VY-VH)*dpr),w=Math.round(VW*dpr),h=Math.round(VH*dpr);gl.viewport(x,y,w,h);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,y,w,h);
+ if(gl&&!glLost){const x=Math.round(VX*gdpr),y=Math.round((SH-VY-VH)*gdpr),w=Math.round(VW*gdpr),h=Math.round(VH*gdpr);gl.viewport(x,y,w,h);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,y,w,h);
   if(pip){gl.clearColor(0.84,0.85,0.87,1)}else gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clearStencil(0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
   const M=viewMatrix();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.depthMask(true);
   drawColor(OP,M);                                                                        // 1) bryły i powierzchnie
@@ -166,7 +171,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
  c.restore()}
 const pipY=()=>{const t=document.querySelector("#stage .top");return t?t.offsetTop+t.offsetHeight+6:56};
 function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
- if(gl){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
+ if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}
  keepCamAbove();scene({x:0,y:0,w:SW,h:SH,cam},false);
  const pc=pipOn&&T.pip&&T.pip();if(pc){const w=Math.min(SW*0.46,260),h=w*0.78;scene({x:SW-w-8,y:pipY(),w,h,cam:pc},true)}}
