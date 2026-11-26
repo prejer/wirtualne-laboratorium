@@ -94,7 +94,7 @@ function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V
  D.cyl(V(hx+0.008,hy-0.012,0.008),V(hx+0.026,hy-0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});D.cyl(V(hx+0.008,hy+0.012,0.008),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
  D.cyl(V(hx+0.026,hy-0.012,0.012),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
  // linijka pionowa (przezroczysta, przed płaszczyzną ołówka)
- const r=st.r;D.custom(D.dz(V(r+0.015,-0.008,0.06))-0.05,()=>D.tapeNow(V(r,-0.008,0),V(0,0,1),V(1,0,0),0.20,0.03,{color:"rgba(250,250,244,.78)"}),V(r+0.015,-0.008,0.1));
+ const r=st.r;D.custom(D.dz(V(r+0.015,-0.008,0.06))-0.05,()=>D.tapeNow(V(r,-0.008,0),V(0,0,1),V(1,0,0),0.20,0.03,{color:"rgba(250,250,244,.78)",labelUp:"d"}),V(r+0.015,-0.008,0.1));
 }
 
 LAB.defineTask({id:"of73-2-olowek",

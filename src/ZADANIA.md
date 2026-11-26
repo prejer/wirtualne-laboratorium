@@ -36,3 +36,10 @@ LAB.defineTask({
 - **Akcje = czynności rękami** („Wymień kartkę”, „Przetrzyj rurkę”), nie „Zmierz”.
 - **Parametry ukryte** w `params`. Lokalna zmiana w akcji: `LAB.params.jitter(["f0"],0.04)`, pełne przelosowanie: `LAB.params.reroll(["ph1"])`. Wartości zapisują się ze stanem.
 - Ikony docka: `tape hand lift stop wipe slide slow pencil mark pin release paper ruler thread grab dice` (dodawaj w `src/core/04-shell.js`).
+
+## Renderowanie (WebGL2 + bufor głębokości)
+- Wszystko, co rysujesz przez `D`, trafia do WebGL z buforem głębokości — **kolejność rysowania nie ma znaczenia**, nic nie przenika. Nie trzeba sztucznych przesunięć głębi ani grupowania brył (`D.solid` zostało tylko dla zgodności).
+- Prymitywy: `D.cyl`, `D.box`, `D.band`, `D.face` (cieniowane, rzucają cień na `shadowArea`), `D.faceNow`/`D.quadNow`/`D.stripNow` (płaskie), `D.line` (wstęga zwrócona do kamery), `D.tapeNow(o,d,w,L,W,{color,labelUp:"d"})` (podziałka jako ostra tekstura).
+- Naklejki i cienkie warstwy (kartka, ślad grafitu) kładź 0,3–0,8 mm nad powierzchnią.
+- Przezroczystość: kolor `rgba(…)` lub `{alpha}` — rysowane po bryłach, od najdalszych.
+- Napisy, strzałki Nauki, uchwyty i ramka Lupy rysuje warstwa 2D nad sceną (`D.P2` daje współrzędne ekranu).
