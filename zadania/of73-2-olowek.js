@@ -10,7 +10,7 @@ let f0,kappa,phases,gauss,PR;
 function syncParams(){f0=PR.f0;kappa=PR.kappa;phases=[[260,PR.ph1,0.55],[610,PR.ph2,0.35],[1350,PR.ph3,0.25]]}
 const VIEWS0=()=>({t:V(0.12,0,0.09),yaw:-0.06,pitch:0.07,dist:0.5});
 const st={zA:0.405,Li:0,off:0,r:0.06,Xt:0.2,mark:null,held:false,stuck:true,laid:false,lay:0.012};
-let slide=null,firstUse=0,lastSlip=null,trail=[],paperT=-1,simT=0;const FK=0.8;
+let dots=[],slide=null,firstUse=0,lastSlip=null,trail=[],paperT=-1,simT=0;const FK=0.8;
 const Lc=()=>LOPTS[st.Li];
 const A=()=>V(0,0,st.zA);
 function noiseP(p){let s=0;for(const[k,ph,a]of phases)s+=a*Math.sin(p*k+ph);return s}
@@ -27,22 +27,28 @@ function cfg(Xt){const L=Lc(),zA=st.zA;const dx=Xt,dz=-zA,Dd=Math.hypot(dx,dz);i
 function startX(){const L=Lc(),px=0.022;const pz=st.zA-Math.sqrt(L*L-px*px);if(pz<=0.003||pz>=D_P)return null;return px+Math.sqrt(D_P*D_P-pz*pz)}
 function newTrial(msg){const x=startX();if(x==null){LAB.flash("Przy tej wysokości zaczepu nie da się oprzeć ołówka — przesuń zaczep.");return}
  st.Xt=x;st.held=false;st.laid=false;st.off=Math.max(st.Xt-0.297,Math.min(st.Xt-0.05,st.off));st.stuck=true;slide=null;lastSlip=null;if(msg)LAB.flash(msg)}
-// Fizyka (quasi-statyczna — ołówek jest lekki, jego bezwładność pomijalna):
+// Fizyka tarcia (stick-slip):
 // • przylganie: końcówka jedzie razem z kartką, dopóki potrzebne tarcie |T/R| ≤ f_s (lokalne, zależne od miejsca na kartce);
-// • po zerwaniu działa tarcie kinetyczne f_k = 0,8·f_s: końcówka szybko wraca do położenia, w którym |T/R| = f_k,
-//   i ślizga się tam, dopóki kartka jedzie — na kartce rośnie kreska grafitu;
-// • gdy kartka staje, prędkość względna znika i końcówka znów przylega (f_k < f_s, więc trzyma).
+// • zerwanie: działa tarcie kinetyczne f_k = 0,8·f_s, a ołówek (z bezwładnością) gwałtownie cofa się i „przestrzeliwuje”
+//   położenie równowagi kinetycznej — z bilansu energii zatrzymuje się tam, gdzie |T/R| ≈ 2f_k − f_s;
+// • tam prędkość względna kartki i końcówki znów się wyrównuje → ponowne przylganie. Przy ciągłym ciągnięciu kartki cykl
+//   się powtarza (skoki), a grafit zostawia kreski tylko podczas poślizgów.
+// • odwrócenie ruchu kartki w trakcie poślizgu = natychmiastowe przylganie.
 const fsAt=X=>{const c=cfg(X);return c?fLoc(c.tanA,X-st.off):0};
-function gK(X,sign){const c=cfg(X);if(!c||!isFinite(c.ratio))return NaN;return c.ratio*sign-FK*fLoc(c.tanA,X-st.off)}
-function eqX(sign){let hi=st.Xt,ghi=gK(hi,sign);if(!isFinite(ghi))return st.Xt;if(ghi<=0)return st.Xt;let lo=hi,glo=ghi;
- for(let k=0;k<300;k++){lo=hi-sign*0.0005;glo=gK(lo,sign);if(!isFinite(glo)){return hi}if(glo<=0)break;hi=lo;ghi=glo}if(glo>0)return hi;
- for(let k=0;k<30;k++){const m=(lo+hi)/2,gm=gK(m,sign);if(!isFinite(gm)||gm>0)hi=m;else lo=m}return(lo+hi)/2}
+function gK(X,sign,k){const c=cfg(X);if(!c||!isFinite(c.ratio))return NaN;return c.ratio*sign-k*fLoc(c.tanA,X-st.off)}
+function eqX(sign,k){k=k??FK;let hi=st.Xt,ghi=gK(hi,sign,k);if(!isFinite(ghi))return st.Xt;if(ghi<=0)return st.Xt;let lo=hi,glo=ghi;
+ for(let i=0;i<300;i++){lo=hi-sign*0.0005;glo=gK(lo,sign,k);if(!isFinite(glo)){return hi}if(glo<=0)break;hi=lo;ghi=glo}if(glo>0)return hi;
+ for(let i=0;i<30;i++){const m=(lo+hi)/2,gm=gK(m,sign,k);if(!isFinite(gm)||gm>0)hi=m;else lo=m}return(lo+hi)/2}
 function checkSlip(){if(st.held||slide||st.laid)return;const c=cfg(st.Xt);if(!c)return;
- const lim=fsAt(st.Xt);if(c.ratio>lim||c.ratio<-lim){lastSlip={xp:c.P.x,yp:c.P.z};st.stuck=false;slide={sign:c.ratio>0?1:-1}}}
-function step(dt){simT+=dt;if(!slide||st.laid||st.held)return;const Xe=eqX(slide.sign);
- const x0=st.Xt;st.Xt+=(Xe-st.Xt)*Math.min(1,dt*40);if(Math.abs(Xe-st.Xt)<2e-5)st.Xt=Xe;addTrail(x0-st.off,st.Xt-st.off);
- if(st.Xt===Xe&&simT-paperT>0.06){slide=null;st.stuck=true;checkSlip()}}
-function addTrail(a,b){if(Math.abs(a-b)<1e-5)return;const L=trail[trail.length-1];if(L&&Math.abs(L[1]-a)<1e-4)L[1]=b;else trail.push([a,b]);if(trail.length>300)trail.shift()}
+ const lim=fsAt(st.Xt);if(c.ratio>lim||c.ratio<-lim){const sign=c.ratio>0?1:-1;lastSlip={xp:c.P.x,yp:c.P.z};st.stuck=false;slide={sign,target:eqX(sign,2*FK-1)}}}
+function stick(){if(slide){dots.push(st.Xt-st.off);if(dots.length>200)dots.shift()}slide=null;st.stuck=true}
+function step(dt){simT+=dt;if(!slide||st.laid||st.held)return;const x0=st.Xt,d=slide.target-st.Xt;
+ st.Xt+=d*Math.min(1,dt*35);if(Math.abs(slide.target-st.Xt)<2e-5)st.Xt=slide.target;addTrail(x0-st.off,st.Xt-st.off);
+ if(st.Xt===slide.target){stick();checkSlip()}}
+// ślad grafitu na kartce: suma przedziałów (współrzędne kartki) — nic się nie „zmazuje”
+function addTrail(a,b){if(Math.abs(a-b)<1e-5)return;let lo=Math.min(a,b),hi=Math.max(a,b);
+ for(let i=trail.length-1;i>=0;i--){const t=trail[i];if(t[0]<=hi+2e-4&&t[1]>=lo-2e-4){lo=Math.min(lo,t[0]);hi=Math.max(hi,t[1]);trail.splice(i,1)}}
+ trail.push([lo,hi]);if(trail.length>400)trail.shift()}
 function paperRange(){const lo=Math.max(-0.019,st.Xt-0.297),hi=st.Xt-0.05;return[lo,hi]}
 function movePaper(ds){if(st.laid){st.off=Math.max(-0.019,Math.min(0.28,st.off+ds));return}
  // kartka nie wchodzi pod pudło i nie wysuwa się spod końcówki ołówka
@@ -51,7 +57,9 @@ function movePaper(ds){if(st.laid){st.off=Math.max(-0.019,Math.min(0.28,st.off+d
  else if(ds>0)no=Math.min(no,Math.max(st.off,hi));else no=Math.max(no,Math.min(st.off,lo));const d=no-st.off;if(!d)return;
  if(!slide&&!st.held&&!cfg(st.Xt+d)){st.off=no;paperT=simT;addTrail(st.Xt-st.off+d,st.Xt-st.off);return} // dalej się nie da — kartka ślizga się pod końcówką
  st.off=no;paperT=simT;
- if(st.held){st.Xt+=d;return}if(slide){addTrail(st.Xt-st.off+d,st.Xt-st.off);return}st.Xt+=d;checkSlip()}
+ if(st.held){st.Xt+=d;return}
+ if(slide){if(Math.sign(d)!==slide.sign){stick();st.Xt+=d;checkSlip();return}addTrail(st.Xt-st.off+d,st.Xt-st.off);return} // kartka jedzie pod ślizgającą się końcówką
+ st.Xt+=d;checkSlip()}
 
 // ---------- rysowanie ----------
 const X=V(1,0,0),Y=V(0,1,0);
@@ -63,7 +71,8 @@ function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V
  // kartka A4 (poziomo) z delikatną krawędzią
  const o=st.off,p0=0.02+o,p1=p0+PAPW;D.quadNow([V(p0,-0.105,0.0003),V(p1,-0.105,0.0003),V(p1,0.105,0.0003),V(p0,0.105,0.0003)],"#fbfbf7");
  D.lineNow(V(p0,-0.105,0.0003),V(p1,-0.105,0.0003),0.0004,"rgba(0,0,0,.12)");
- for(const[t0,t1]of trail)D.lineNow(V(t0+o,0,0.0005),V(t1+o,0,0.0005),0.0006,"rgba(50,50,55,.75)");
+ for(const x of dots)D.stripNow(V(x+o-0.0005,0,0.00055),V(x+o+0.0005,0,0.00055),0.0009,"rgba(30,30,35,.85)");
+ for(const[t0,t1]of trail)D.stripNow(V(t0+o,0,0.0005),V(Math.max(t1,t0+0.0004)+o,0,0.0005),0.0005,"rgba(50,50,55,.8)");
  if(st.mark!=null){const mx=st.mark+o;D.lineNow(V(mx-0.003,0.014,0.0006),V(mx+0.003,0.020,0.0006),0.0006,"#555");D.lineNow(V(mx-0.003,0.020,0.0006),V(mx+0.003,0.014,0.0006),0.0006,"#555")}
  // linijka pozioma 30 cm (płaska, grubość 2 mm)
  const ry0=-0.016,ry1=-0.046,rh=0.002;D.faceNow([V(0,ry1,rh),V(0.60,ry1,rh),V(0.60,ry1,0),V(0,ry1,0)],mul(Y,-1),"#d9d9cf");D.faceNow([V(0.60,ry1,0),V(0.60,ry0,0),V(0.60,ry0,rh),V(0.60,ry1,rh)],X,"#d9d9cf");
@@ -109,7 +118,7 @@ LAB.defineTask({id:"of73-2-olowek",
   {icon:"mark",label:"Zaznacz styk",tip:"Stawiasz krzyżyk na kartce obok końcówki",run:()=>{if(st.laid)return;st.mark=st.Xt-st.off;LAB.flash("Krzyżyk postawiony.")}},
   {icon:"pin",label:"Przytrzymaj przy znaczniku",tip:"Przykładasz końcówkę do krzyżyka i trzymasz",run:()=>{if(st.laid)return;if(st.mark==null){LAB.flash("Na kartce nie ma znacznika.");return}const X0=st.mark+st.off;if(!cfg(X0)){LAB.flash("Ołówek nie sięga do znacznika.");return}st.Xt=X0;st.held=true;slide=null}},
   {icon:"release",label:"Puść ołówek",tip:"Zabierasz rękę",run:()=>{if(!st.held)return;st.held=false;checkSlip()}},
-  {icon:"paper",label:"Wymień kartkę",tip:"Czysta kartka — bez śladów i znaczników; każda kartka ma nieco inną powierzchnię",run:()=>{trail=[];st.mark=null;st.off=0;LAB.params.jitter(["f0"],0.04);LAB.params.reroll(["ph1","ph2","ph3"]);syncParams();newTrial()}},
+  {icon:"paper",label:"Wymień kartkę",tip:"Czysta kartka — bez śladów i znaczników; każda kartka ma nieco inną powierzchnię",run:()=>{trail=[];dots=[];st.mark=null;st.off=0;LAB.params.jitter(["f0"],0.04);LAB.params.reroll(["ph1","ph2","ph3"]);syncParams();newTrial()}},
   {icon:"thread",label:"Zawiąż nową nić",tip:"Nić innej długości — zmienia się geometria",run:()=>{st.Li=(st.Li+1)%LOPTS.length;const L=Lc();st.zA=Math.max(L+0.02,Math.min(L+0.06,st.zA));newTrial("Nowa nić, inna długość.")}},
   {icon:"ruler",label:()=>st.laid?"Zawieś ołówek":"Połóż przy linijce",tip:"Zdejmujesz ołówek z nicią i kładziesz przy linijce, żeby zmierzyć d i L",run:()=>{if(st.laid){st.laid=false;newTrial();return}st.laid=true;st.held=false;slide=null;st.lay=0.006+Math.random()*0.02;LAB.goCam({t:V(0.3,-0.05,0),yaw:0,pitch:1.2,dist:0.55},900)}}],
  learn(D,c,viz){if(st.laid)return;const k=cfg(st.Xt);if(!k)return;const P=k.P,tip=k.tip,u=mul(sub(tip,P),1/D_P),G=add(P,mul(u,D_P/2)),S=0.045,a=A();
@@ -124,8 +133,8 @@ LAB.defineTask({id:"of73-2-olowek",
   viz.panel(c,[["α (ołówek–kartka)",fmt(k.alpha*180/Math.PI,1)+"°"],["β (nić–pion)",fmt(k.beta*180/Math.PI,1)+"°"],["x_P, y_P",fmt(P.x*100,1)+" cm, "+fmt(P.z*100,1)+" cm"],
    ["N, R, T  (× mg)",fmt(k.N,2)+", "+fmt(R,2)+", "+fmt(Math.abs(T),3)],["T/R potrzebne",fmt(Math.abs(k.ratio),3),"#dc2626"],["f_s w tym miejscu kartki",fmt(fs,3)],["stan",slide?"poślizg (f_k = "+fmt(FK*fs,3)+")":st.held?"trzymany ręką":"spoczynek"]])},
  init(env){gauss=env.gauss;PR=env.P;syncParams();newTrial()},
- getState:()=>({...st,trail}),
- setState(o){if(Array.isArray(o.trail))trail=o.trail;const{trail:_t,__params:_p,...rest}=o;Object.assign(st,rest);st.laid=false;slide=null;syncParams();if(!cfg(st.Xt))newTrial()},
+ getState:()=>({...st,trail,dots}),
+ setState(o){if(Array.isArray(o.trail))trail=o.trail;if(Array.isArray(o.dots))dots=o.dots;const{trail:_t,dots:_d,__params:_p,...rest}=o;Object.assign(st,rest);st.laid=false;slide=null;syncParams();if(!cfg(st.Xt))newTrial()},
  start(resumed){LAB.goCam(VIEWS0(),1800);if(!resumed)setTimeout(()=>LAB.showHint("Złap kartkę i ciągnij ją powoli w prawo. Obserwuj końcówkę — sam zdecyduj, kiedy przestać.",9000),1900)},
  update(dt){const n=Math.ceil(dt/0.002);for(let i=0;i<n;i++)step(dt/n)},
  status(){return st.laid?"ołówek zdjęty — leży przy linijce":st.held?"trzymasz końcówkę przy znaczniku":""}});

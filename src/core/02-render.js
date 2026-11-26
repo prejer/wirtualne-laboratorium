@@ -58,7 +58,7 @@ const D={ // API rysowania dla zadania
  quad:(pts,col,o)=>prims.push({t:"q",pts,col,z:pts.reduce((s,p)=>s+dz(p),0)/pts.length,...(o||{})}),
  hexNut:(p,r,o)=>prims.push({t:"nut",p,r,z:dz(p),...(o||{})}),
  custom:(z,fn,ref)=>prims.push({t:"c",z,fn,ref}),
- quadNow,lineNow,tapeNow,P2,dz,get camPos(){return CB.pos},get pip(){return isPip}};
+ quadNow,lineNow,tapeNow,stripNow,P2,dz,get camPos(){return CB.pos},get pip(){return isPip}};
 // ---------- stały motyw: stół laboratoryjny (sklejka brzozowa, nogi, podłoga) ----------
 // Zadanie podaje scene.table={x0,x1,y0,y1}; blat ma górę na z=0. Rysowany przed sceną zadania,
 // w dwóch przebiegach (to, co pod blatem → blat), więc nic spod stołu nie „prześwituje” przez blat.
