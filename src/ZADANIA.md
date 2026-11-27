@@ -2,8 +2,8 @@
 
 Silnik (`engine.js`, budowany z `src/core/*.js` przez `python3 build.py`) to **LabShell** — wspólna rama każdego zadania:
 
-- górny pasek: ☰ Zadania · widoki kamery · Lupa · Pomiar/Nauka · tempo ×1/×¼ · 🎲 nowy zestaw · ? pomoc · Zadanie,
-- okno Lupy z celownikiem, panel Nauki (widoczny tylko w trybie Nauka),
+- górny pasek: ☰ Zadania · widoki kamery · Pomiar/Nauka · tempo ×1/×¼ · 🎲 nowy zestaw · ? pomoc · Zadanie,
+- panel Nauki (widoczny tylko w trybie Nauka),
 - dolny dock: **lewa sekcja** — przedmioty do chwytania (stan `active`), **prawa sekcja** — akcje jednorazowe,
 - ekran startowy, treść zadania, zapis stanu w przeglądarce, losowanie parametrów ukrytych.
 
@@ -20,7 +20,6 @@ LAB.defineTask({
   params:{f0:{min:0.20,max:0.30}},                   // ukryte parametry, losowane z numeru zestawu
   scene:{draw, light:V(…), shadowArea:[…]},          // draw(D) rysuje scenę API D (cyl, box, band, face, line, tapeNow…)
   views:[{label:"Z boku", cam:()=>({t:V(…),yaw,pitch,dist})}],
-  lupa:()=>({t,yaw,pitch,dist}) | null,              // kamera okna Lupy (null = ukryta)
   movables:[{id:"paper", label:"Kartka", hint:"ciągnij powoli",
              grab:()=>({p:V(…), axis:V(1,0,0), r:0.012, onStart, onMove:ds=>…, onEnd}) | null}],
   actions:[{icon:"paper", label:"Wymień kartkę", tip:"…", run:()=>…}],   // bez trwałego stanu
@@ -42,4 +41,4 @@ LAB.defineTask({
 - Prymitywy: `D.cyl`, `D.box`, `D.band`, `D.face` (cieniowane, rzucają cień na `shadowArea`), `D.faceNow`/`D.quadNow`/`D.stripNow` (płaskie), `D.line` (wstęga zwrócona do kamery), `D.tapeNow(o,d,w,L,W,{color,labelUp:"d"})` (podziałka jako ostra tekstura).
 - Naklejki i cienkie warstwy (kartka, ślad grafitu) kładź 0,3–0,8 mm nad powierzchnią.
 - Przezroczystość: kolor `rgba(…)` lub `{alpha}` — rysowane po bryłach, od najdalszych.
-- Napisy, strzałki Nauki, uchwyty i ramka Lupy rysuje warstwa 2D nad sceną (`D.P2` daje współrzędne ekranu).
+- Napisy, strzałki Nauki i uchwyty rysuje warstwa 2D nad sceną (`D.P2` daje współrzędne ekranu).

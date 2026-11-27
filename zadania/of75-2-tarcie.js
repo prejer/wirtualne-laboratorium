@@ -122,7 +122,6 @@ LAB.defineTask({id:"of75-2-tarcie",
  params:{fs:{min:0.16,max:0.32},kRatio:{min:0.72,max:0.90}},
  scene:{shadowArea:[V(TX0,TY0,0),V(TX1,TY0,0),V(TX1,0,0),V(TX0,0,0)],draw},
  views:[{label:"3D",cam:()=>({t:V(0.03,-0.05,0.2),yaw:Math.PI-0.6,pitch:0.22,dist:1.45})},{label:"Przód",cam:()=>({t:V(0.02,0,0.2),yaw:Math.PI,pitch:0.04,dist:1.35})},{label:"Bok",cam:()=>({t:V(0,-0.12,0.28),yaw:-Math.PI/2,pitch:0.08,dist:1.35})},{label:"Góra",cam:()=>({t:V(0,-0.15,0),yaw:Math.PI,pitch:1.56,dist:1.5})}],
- lupa:()=>{if(tapeOnBar)return{t:V(0,st.ya,st.H+0.013),yaw:0.0001,pitch:1.5,dist:0.1};if(!rib.on)return null;const g=geom(rib.s);if(!g)return null;return{t:V(g.D.x,TUBEY,TUBEZ-0.02),yaw:0.0001,pitch:1.22,dist:0.1}},
  movables:[
   {id:"nut",label:"Nakrętka",hint:"odchyl wzdłuż rurki i puść",grab:()=>rib.on?{p:nutPos(),r:0.019,axis:V(1,0,0),onStart:()=>{rib.held=true;rib.v=0;0},onMove:ds=>{rib.s=Math.max(-LT/2+0.02,Math.min(LT/2-0.02,rib.s+ds))},onEnd:release}:null},
   {id:"knot",label:"Węzeł na poprzeczce",hint:"przesuwaj wzdłuż poprzeczki",grab:()=>({p:anchor(),r:0.02,axis:V(0,1,0),onStart:()=>{knotHeld=true;0},onMove:ds=>setYa(st.ya+ds),onEnd:()=>{knotHeld=false;release()}})}],

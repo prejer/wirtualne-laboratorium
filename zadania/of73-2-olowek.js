@@ -109,7 +109,6 @@ LAB.defineTask({id:"of73-2-olowek",
  params:{f0:{min:0.20,max:0.30},kappa:{min:3,max:5.5},ph1:{min:0,max:6.283},ph2:{min:0,max:6.283},ph3:{min:0,max:6.283}},
  scene:{light:V(0.35,-0.5,1),table:{x0:-0.6,x1:0.85,y0:-0.42,y1:0.38},draw},
  views:[{label:"Z boku",cam:()=>({t:V(0.12,0,0.09),yaw:-0.06,pitch:0.07,dist:0.5})},{label:"3D",cam:()=>({t:V(0.06,0,0.12),yaw:0.75,pitch:0.38,dist:0.8})},{label:"Z góry",cam:()=>({t:V(0.15,0,0),yaw:0,pitch:1.56,dist:0.7})},{label:"Styk",cam:()=>({t:V(st.Xt,0,0.01),yaw:-0.4,pitch:0.25,dist:0.12})}],
- lupa:()=>{const c=cfg(st.Xt);const pz=c?c.P.z:0.05;return{t:V(st.r,0,pz/2+0.004),yaw:0.0001,pitch:0.03,dist:0.115}},
  movables:[
   {id:"paper",label:"Kartka",hint:"ciągnij powoli od pudła",grab:()=>({p:V(0.02+st.off+PAPW+0.008,-0.0875,0.004),r:0.012,axis:V(1,0,0),onMove:movePaper})},
   {id:"ruler",label:"Linijka pionowa",hint:"dosuń do końca ołówka",grab:()=>({p:V(st.r+0.015,-0.008,0.1),r:0.015,axis:V(1,0,0),onMove:ds=>{st.r=Math.max(0,Math.min(0.26,st.r+ds))}})},

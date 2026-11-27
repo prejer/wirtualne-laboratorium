@@ -30,7 +30,7 @@ const gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getC
 // utrata kontekstu GPU (częsta na tabletach przy braku pamięci): wstrzymaj rysowanie i odbuduj zasoby po przywróceniu
 let glLost=false;glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true});glc.addEventListener("webglcontextrestored",()=>{initGL();glLost=false});
 if(!gl){const m=document.createElement("div");m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
-const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;let pipOn=true;
+const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;
 let VW,VH,VX,VY,CB,isPip=false;
 // gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
 let gdpr=1;function resize(){const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
@@ -169,12 +169,11 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
   c.strokeStyle="rgba(200,30,30,.8)";c.beginPath();c.arc(cx+.5,cy+.5,2,0,7);c.stroke();
   c.strokeStyle="#fff";c.lineWidth=3;c.strokeRect(VX+1.5,VY+1.5,VW-3,VH-3);c.fillStyle="rgba(27,33,48,.85)";c.fillRect(VX+6,VY+6,44,18);c.fillStyle="#fff";c.font="600 11px system-ui";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("lupa",VX+12,VY+19)}
  c.restore()}
-const pipY=()=>{const t=document.querySelector("#stage .top");return t?t.offsetTop+t.offsetHeight+6:56};
 function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
  if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}
  keepCamAbove();scene({x:0,y:0,w:SW,h:SH,cam},false);
- const pc=pipOn&&T.pip&&T.pip();if(pc){const w=Math.min(SW*0.46,260),h=w*0.78;scene({x:SW-w-8,y:pipY(),w,h,cam:pc},true)}}
+}
 // kamera nie schodzi poniżej podłogi
 function keepCamAbove(){if(T.camMinZ==null)return;const m=T.camMinZ;if(cam.t.z<m-0.02)cam.t=V(cam.t.x,cam.t.y,m-0.02);const need=(m-cam.t.z)/cam.dist;if(need>=0.98)return;if(Math.sin(cam.pitch)<need)cam.pitch=Math.asin(need)}
 function goCam(v,d){camAnim={t0:performance.now(),d:d||900,a:{t:cam.t,yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist},b:v}}
@@ -230,7 +229,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
  if(keys.has("arrowleft"))orbitBy(-260*dt,0);if(keys.has("arrowright"))orbitBy(260*dt,0);if(keys.has("arrowup"))orbitBy(0,-200*dt);if(keys.has("arrowdown"))orbitBy(0,200*dt)}
 
 // ---------- LabShell: wspólna rama każdego doświadczenia ----------
-// Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Lupa, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
+// Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
 const VERSION="0.7";
@@ -253,7 +252,7 @@ const ICONS={
 
 ICONS.dice='<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.2"/><circle cx="16" cy="16" r="1.2"/><circle cx="16" cy="8" r="1.2"/><circle cx="8" cy="16" r="1.2"/><circle cx="12" cy="12" r="1.2"/>';
 function shellDOM(){const st=$("stage");st.insertAdjacentHTML("beforeend",`
- <div class="top"><button class="pill zad" id="bZad">☰ Zadania</button><span id="views"></span><button class="pill on" id="bPip" title="Lupa: powiększony podgląd miejsca pomiaru">Lupa</button><span class="sp"></span>
+ <div class="top"><button class="pill zad" id="bZad">☰ Zadania</button><span id="views"></span><span class="sp"></span>
   <span id="modes" class="seg" title="Pomiar: jak w laboratorium · Nauka: siły, kąty i odległości na żywo"><button class="pill on" data-m="pomiar">Pomiar</button><button class="pill" data-m="nauka">Nauka</button></span>
   <button class="pill" id="bSpeed" title="Zwolnione tempo (ułatwienie symulacji)">×1</button>
   <button class="pill ico" id="bNew" title="Nowy zestaw pomiarowy — losuje ukryte parametry">${'<svg viewBox="0 0 24 24">'+ICONS.dice+'</svg>'}</button>
@@ -304,7 +303,7 @@ const params={get:()=>P,
 function defineTask(cfg){
  const movables=cfg.movables||[];
  const tb=cfg.scene.table||null;
- T={...cfg,draw:cfg.scene.draw,table:tb,light:cfg.scene.light,pip:cfg.lupa||null,
+ T={...cfg,draw:cfg.scene.draw,table:tb,light:cfg.scene.light,
   shadowArea:cfg.scene.shadowArea||(tb?[V(tb.x0,tb.y0,0),V(tb.x1,tb.y0,0),V(tb.x1,tb.y1,0),V(tb.x0,tb.y1,0)]:null),
   camMinZ:cfg.scene.camMinZ??(tb?(tb.floor??-0.75)+0.03:null),
   movables,actions:cfg.actions||[],views:cfg.views,
@@ -329,7 +328,6 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  const vb=$("views");vb.innerHTML=T.views.map((v,i)=>`<button class="pill" data-v="${i}">${v.label}</button>`).join("");vb.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>goCam(T.views[+b.dataset.v].cam()));
  document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));if(!T.learn)$("modes").style.display="none";
  $("bHelp").onclick=()=>$("help").classList.toggle("on");$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
- const bp=$("bPip");if(!T.pip)bp.style.display="none";bp.onclick=()=>{pipOn=!pipOn;bp.classList.toggle("on",pipOn)};
  const bs=$("bSpeed");bs.onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];bs.textContent=speed===1?"×1":"×¼";bs.classList.toggle("on",speed!==1)};
  $("bZad").onclick=()=>{renderCatalog(window.LAB_TASKS||[]);$("catalog").classList.add("on")};
  // zapis stanu (z parametrami ukrytymi)

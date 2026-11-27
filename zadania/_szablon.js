@@ -9,7 +9,6 @@ LAB.defineTask({id:"szablon",
  params:{m:{min:0.09,max:0.11}},
  scene:{draw,shadowArea:[V(-0.5,-0.4,0),V(0.6,-0.4,0),V(0.6,0.4,0),V(-0.5,0.4,0)]},
  views:[{label:"3D",cam:()=>({t:V(0.05,0,0.05),yaw:0.6,pitch:0.4,dist:0.8})}],
- lupa:()=>null,
  movables:[{id:"block",label:"Klocek",hint:"przesuń wzdłuż stołu",grab:()=>({p:V(st.x,0,0.04),axis:V(1,0,0),r:0.03,onMove:ds=>{st.x+=ds}})}],
  actions:[{icon:"hand",label:"Ustaw na zero",tip:"…",run:()=>{st.x=0}}],
  init(env){P=env.P},update(dt){},status(){return""},getState:()=>({...st}),setState(o){Object.assign(st,o)}});
