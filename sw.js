@@ -2,8 +2,8 @@
    • strona (HTML): najpierw sieć, przy braku sieci kopia z pamięci;
    • pliki z ?v=wersja (silnik, zadania): z pamięci — nowa wersja ma nowy adres, więc nie ma starych plików;
    • reszta (ikony, manifest): z pamięci, w tle odświeżana. */
-const CACHE="lab-v0.15";
-const CORE=["./","./index.html","./engine.js?v=0.15","./zadania/index.js?v=0.15","./zadania/of73-2-olowek.js?v=0.15","./zadania/of75-2-tarcie.js?v=0.15","./zadania/plac-zabaw.js?v=0.15","./zadania/plac-elektronika.js?v=0.15","./zadania/of65-2-kulka.js?v=0.15","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
+const CACHE="lab-v0.16";
+const CORE=["./","./index.html","./engine.js?v=0.16","./zadania/index.js?v=0.16","./zadania/of73-2-olowek.js?v=0.16","./zadania/of75-2-tarcie.js?v=0.16","./zadania/plac-zabaw.js?v=0.16","./zadania/plac-elektronika.js?v=0.16","./zadania/of65-2-kulka.js?v=0.16","./zadania/of59-2-brzeszczot.js?v=0.16","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET"||new URL(r.url).origin!==location.origin)return;

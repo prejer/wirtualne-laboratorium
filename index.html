@@ -184,7 +184,7 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
  var mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)||(mm("(pointer:coarse)")&&!mm("(any-pointer:fine)"));
  var ok=false;try{ok=localStorage.getItem("lab-mobile-ok")==="1"}catch(e){}
  window.LAB_MOBILE=mobile;
- function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.15";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.15";document.body.appendChild(b)};document.body.appendChild(a)}
+ function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.16";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.16";document.body.appendChild(b)};document.body.appendChild(a)}
  if(!mobile||ok){load();return}
  document.getElementById("gate").classList.add("on");
  document.getElementById("gateTry").onclick=function(e){e.preventDefault();try{localStorage.setItem("lab-mobile-ok","1")}catch(_){}load()}})();

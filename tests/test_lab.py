@@ -36,10 +36,15 @@ for(const dz of[0.01,0.03,0.05]){st.dz=dz;st.s=0.33;st.marks=[];st.kalka=true;st
  const G=T.geo(),R=T.r(),al=G.al,h=G.topEnd.z,a=g*(Math.sin(al)-(P.k/R)*Math.cos(al))/(1+P.beta),v2=2*a*0.33,A=g/(2*v2*Math.cos(al)**2),Bq=Math.tan(al);
  out.push({tg:Bq,d:sum/n,pred:(-Bq+Math.sqrt(Bq*Bq+4*A*h))/(2*A)})}return out})()"""
 
+OF59 = r"""(()=>{const T=window.OF59_TEST,st=T.st,g=9.81,out=[];T.P().Q=70;
+for(const L of[0.27,0.2,0.14]){st.L=L;const M=T.mech();T.set(-0.035,0);let last=0,t=0;
+ for(let i=0;i<300000;i++){T.step(0.0002);t+=0.0002;if(T.clip().air)last=t;if(last>0&&t-last>1.5)break;if(t>40)break}
+ out.push({L,f:M.f,fe:Math.sqrt(g/T.lastDet())/(2*Math.PI)})}return out})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -50,6 +55,9 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "of59-2-brzeszczot":
+            for r in pg.evaluate(OF59):
+                check(f"OF59 próg spinacza → f (L={r['L']*100:.0f} cm)", abs(r["fe"] - r["f"]) < 0.03 * r["f"], f"f={r['f']:.2f} Hz, z progu {r['fe']:.2f} Hz")
         elif tid == "of65-2-kulka":
             for r in pg.evaluate(OF65):
                 check(f"OF65 zasięg d = wzór Komitetu (tgα={r['tg']:.3f})", abs(r["d"] - r["pred"]) < 0.004 + 0.03 * r["pred"], f"d={r['d']*1000:.1f} wzór={r['pred']*1000:.1f} mm")
