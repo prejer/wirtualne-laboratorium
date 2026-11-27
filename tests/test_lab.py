@@ -41,10 +41,14 @@ for(const L of[0.27,0.2,0.14]){st.L=L;const M=T.mech();T.set(-0.035,0);let last=
  for(let i=0;i<300000;i++){T.step(0.0002);t+=0.0002;if(T.clip().air)last=t;if(last>0&&t-last>1.5)break;if(t>40)break}
  out.push({L,f:M.f,fe:Math.sqrt(g/T.lastDet())/(2*Math.PI)})}return out})()"""
 
+OF71 = r"""(()=>{const T=window.OF71_TEST,st=T.st,P=T.P();st.bP=1;st.bM=3;for(let i=0;i<50;i++)T.step(0.02);const U1=st.U1,U2=st.U2;
+ st.bP=0;st.bM=0;st.mC=2;st.mV=1;const v0=T.meterV();for(let i=0;i<1000;i++)T.step(0.02);const v20=T.meterV();st.mC=0;st.mV=0;
+ return{U1,sum:U1+U2,UB:P.UB,U1p:P.UB*P.C2/(P.C1+P.C2),v0,v0p:U1*T.RW/(P.R+T.RW),tau:20/Math.log(v0/v20),tau_p:(P.R+T.RW)*P.C1}})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -55,6 +59,11 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "of71-2-rc":
+            r = pg.evaluate(OF71)
+            check("OF71 ładowanie 1–3: U₁+U₂ = U_B, podział wg pojemności", abs(r["sum"] - r["UB"]) < 1e-3 and abs(r["U1"] - r["U1p"]) < 1e-3)
+            check("OF71 rozładowanie przez R+R_w: τ = (R+R_w)C₁", abs(r["tau"] - r["tau_p"]) < 0.01 * r["tau_p"], f"τ={r['tau']:.2f} s")
+            check("OF71 woltomierz pokazuje U·R_w/(R+R_w)", abs(r["v0"] - r["v0p"]) < 1e-4, f"{r['v0']*1000:.1f} mV")
         elif tid == "of59-2-brzeszczot":
             for r in pg.evaluate(OF59):
                 check(f"OF59 próg spinacza → f (L={r['L']*100:.0f} cm)", abs(r["fe"] - r["f"]) < 0.03 * r["f"], f"f={r['f']:.2f} Hz, z progu {r['fe']:.2f} Hz")

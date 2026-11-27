@@ -258,7 +258,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.16";
+const VERSION="0.17";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -505,7 +505,7 @@ const RASTER=0.00254;   // raster płytki stykowej i nóżek elementów: 0,1 cal
 function wyswietlacz(pts,tekst,{tlo="#b7c2a3",kolor="#1d2420",swieci=false,w,h}={}){
  w=w??len(sub(pts[1],pts[0]));h=h??len(sub(pts[3],pts[0]));quadNow(pts,tlo,2);if(tekst==null||tekst==="")return;
  texQuadNow(pts,[0,0,1,0,1,1,0,1],"dyn:"+tekst+"|"+kolor+"|"+(w/h).toFixed(2),256,(g,S)=>{g.clearRect(0,0,S,S);const a=w/h;g.save();g.scale(1/a,1);const W=S*a;
-  g.font=`700 ${Math.round(S*0.74)}px "DejaVu Sans Mono","Consolas",monospace`;g.textAlign="right";g.textBaseline="middle";
+  let fs=S*0.74;g.font=`700 ${Math.round(fs)}px "DejaVu Sans Mono","Consolas",monospace`;const tw=g.measureText(tekst).width;if(tw>W*0.86){fs*=W*0.86/tw;g.font=`700 ${Math.round(fs)}px "DejaVu Sans Mono","Consolas",monospace`}g.textAlign="right";g.textBaseline="middle";
   if(swieci){g.shadowColor=kolor;g.shadowBlur=S*0.06}g.fillStyle=kolor;g.fillText(tekst,W-S*0.12,S*0.56);g.restore()})}
 const nozka=(a,b,kol="#c9ced4")=>cyl(a,b,0.00025,kol,{n:5,caps:false,metal:40,spec:0.5,shadow:false});
 Object.assign(sprzet,{
@@ -592,6 +592,15 @@ Object.assign(sprzet,{
   cyl(add(c,V(0,0,0.0215)),add(c,V(0,0,0.0225)),0.0016,lit>0.05?"#fff3b0":"#666",{n:6,amb:0.3+0.7*lit,shadow:false});
   if(lit>0.05)cyl(add(c,V(0,0,0.012)),add(c,V(0,0,0.036)),0.016*(0.6+0.5*lit),"#ffe680",{n:16,r1:0.004,alpha:0.16*lit,amb:1,shadow:false,caps:false});
   for(const s of[-1,1])cyl(add(c,V(s*0.01,-0.008,0.004)),add(c,V(s*0.01,-0.014,0.004)),0.0022,"#b9bec4",{n:8,metal:40})}
+,
+ // Stoper elektroniczny leżący na stole: c środek podstawy, czas [s] — wyświetlany jak na prawdziwym stoperze (mm:ss.ss).
+ stoper({c,czas=0,biegnie=false}={}){const t=Math.max(0,czas),m=Math.floor(t/60),sx=(t-60*m).toFixed(2).padStart(5,"0");
+  box(add(c,V(0,0,0.007)),mul(SX,0.03),mul(SY,0.038),mul(Z,0.007),"#2f3d52",{amb:0.5,spec:0.35});cyl(add(c,V(0,0.038,0.007)),add(c,V(0,0.046,0.007)),0.004,"#9aa2ab",{n:10,metal:40});
+  const z=c.z+0.0142;wyswietlacz([V(c.x-0.024,c.y+0.026,z),V(c.x+0.024,c.y+0.026,z),V(c.x+0.024,c.y+0.004,z),V(c.x-0.024,c.y+0.004,z)],String(m).padStart(2,"0")+":"+sx);
+  for(const[dx,col]of[[-0.014,"#c0392b"],[0.014,"#3a7d44"]])cyl(V(c.x+dx,c.y-0.018,z-0.0005),V(c.x+dx,c.y-0.018,z+0.0018),0.0055,col,{n:14,amb:0.5});
+  if(biegnie)stripNow(V(c.x+0.02,c.y+0.0015,z),V(c.x+0.023,c.y+0.0015,z),0.0016,"#e74c3c",3)},
+ // Napis (cyfry, znaczki) na powierzchni: pts jak w wyświetlaczu, tekst jasny/ciemny, tło przezroczyste.
+ napis(pts,tekst,kolor="#f2f2f2"){texQuadNow(pts,[0,0,1,0,1,1,0,1],"lbl:"+tekst+"|"+kolor,128,(g,S)=>{g.clearRect(0,0,S,S);g.fillStyle=kolor;g.font=`700 ${Math.round(S*0.8)}px system-ui,sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText(tekst,S/2,S*0.55)})}
 });
 
 return{sprzet,_draw:()=>draw(),_grabs:()=>grabList(),defineTask,params,screenOf,V,add,sub,mul,dot,cross,len,nrm,lerp,Z,goCam,flash,showHint,hideHint,viz,fmt,num,esc,gauss,get seed(){return seed},get P(){return P},VERSION};
