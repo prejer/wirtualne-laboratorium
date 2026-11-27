@@ -24,7 +24,7 @@ function glow(Pp,E,I,da){da=da||0.044;const c=cdC(),gv=sub(V(Pp.x,Pp.y,0),V(c.x,
  let R=0,G=0,B=0,a=0;const amp=I/0.006*0.22/(dl*dl);
  const z0=Math.exp(-0.5*Math.pow(dg/eps,2))*0.6;if(z0>0.01){const lp=P[DIODY[st.dioda].lp],k=rgbOf(lp);R+=k[0]*z0;G+=k[1]*z0;B+=k[2]*z0;a+=z0}
  for(const m of[1,-1,2,-2]){const lam=DTR*dg/m*1e9;if(lam<380||lam>760)continue;const sgx=DTR*eps/Math.abs(m)*1e9,s=spec(lam,sgx)*(Math.abs(m)===1?1:0.35);if(s<0.004)continue;const k=rgbOf(lam);R+=k[0]*s;G+=k[1]*s;B+=k[2]*s;a+=s}
- a*=wt*amp;if(a<0.02)return null;const n=Math.max(R,G,B)||1;return{c:`rgba(${Math.round(R/n*255)},${Math.round(G/n*255)},${Math.round(B/n*255)},${Math.min(1,a).toFixed(3)})`}}
+ a*=wt*amp;if(a<0.02)return null;const n=Math.max(R,G,B)||1;return{a,c:`rgba(${Math.round(R/n*255)},${Math.round(G/n*255)},${Math.round(B/n*255)},${Math.min(1,a).toFixed(3)})`}}
 function draw(D){const e=diode(),d=DIODY[st.dioda],L=LED(),c=cdC();
  // statyw z łapą trzymającą diodę świecącą w dół
  D.box(V(0,0.17,0.005),V(0.06,0,0),V(0,0.05,0),V(0,0,0.005),"#30343a",{metal:15,spec:0.3});D.cyl(V(0,0.17,0.01),V(0,0.17,st.H+0.06),0.005,"#a9b0b8",{n:12,metal:40,spec:0.6});

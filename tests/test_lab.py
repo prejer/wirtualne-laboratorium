@@ -47,7 +47,7 @@ OF71 = r"""(()=>{const T=window.OF71_TEST,st=T.st,P=T.P();st.bP=1;st.bM=3;for(le
 
 OF56 = r"""(()=>{const T=window.OF56_TEST,st=T.st,P=T.P(),out=[];st.U=5;
 for(let d=0;d<3;d++){st.dioda=d;const e=T.diode();let best=0,bx=0;
- for(let x=0.03;x<0.25;x+=0.0005){st.x=x;const m=T.marker(),E=LAB.V(m.x,0,0.35);const g=T.glow(m,E,e.I);if(g){const a=parseFloat(g.c.split(",")[3]);if(a>best+1e-9){best=a;bx=x}}}
+ for(let x=0.03;x<0.25;x+=0.0005){st.x=x;const m=T.marker(),E=LAB.V(m.x,0,0.35);const g=T.glow(m,E,e.I);if(g){const a=g.a;if(a>best+1e-9){best=a;bx=x}}}
  out.push({d,lam:T.DTR*bx/Math.hypot(bx,st.H)*1e9,lp:[P.lpR,P.lpG,P.lpB][d],kir:e.UR+e.UD-st.U})}st.U=0;return out})()"""
 
 with sync_playwright() as p:
