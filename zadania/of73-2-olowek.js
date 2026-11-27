@@ -27,13 +27,11 @@ function cfg(Xt){const L=Lc(),zA=st.zA;const dx=Xt,dz=-zA,Dd=Math.hypot(dx,dz);i
 function startX(){const L=Lc(),px=0.022;const pz=st.zA-Math.sqrt(L*L-px*px);if(pz<=0.003||pz>=D_P)return null;return px+Math.sqrt(D_P*D_P-pz*pz)}
 function newTrial(msg){const x=startX();if(x==null){LAB.flash("Przy tej wysokości zaczepu nie da się oprzeć ołówka — przesuń zaczep.");return}
  st.Xt=x;st.held=false;st.laid=false;st.off=Math.max(st.Xt-0.297,Math.min(st.Xt-0.05,st.off));st.stuck=true;slide=null;lastSlip=null;if(msg)LAB.flash(msg)}
-// Fizyka tarcia:
+// Fizyka tarcia (ołówek jest lekki — jego bezwładność pomijamy):
 // • przylganie: końcówka jedzie razem z kartką, dopóki potrzebne tarcie |T/R| ≤ f_s (lokalne, zależne od miejsca na kartce);
-// • zerwanie: tarcie spada do kinetycznego f_k = 0,8·f_s, ołówek (z bezwładnością) gwałtownie odskakuje i przestrzeliwuje
-//   położenie równowagi — z bilansu energii aż do |T/R| ≈ 2f_k − f_s (widoczny skok);
-// • jeśli kartka dalej jedzie, prędkość względna się utrzymuje: działa tarcie kinetyczne, końcówka ustala się tam, gdzie
-//   |T/R| = f_k, i ślizga się ciągle (kreska grafitu rośnie);
-// • gdy kartka stanie lub zawróci, prędkość względna znika → przylganie.
+// • zerwanie: tarcie spada do kinetycznego f_k = 0,8·f_s, końcówka szybko cofa się do położenia, w którym |T/R| = f_k
+//   (widoczny skok), i dopóki kartka jedzie — ślizga się tam ciągle, a kreska grafitu rośnie;
+// • gdy kartka stanie lub zawróci, prędkość względna znika → przylganie w miejscu, w którym końcówka jest.
 const fsAt=X=>{const c=cfg(X);return c?fLoc(c.tanA,X-st.off):0};
 // w poślizgu grafit „uśrednia” papier, więc tarcie kinetyczne liczymy bez lokalnych nierówności kartki
 function gK(X,sign,k){const c=cfg(X);if(!c||!isFinite(c.ratio))return NaN;return c.ratio*sign-k*fTrue(c.tanA)}
@@ -42,14 +40,12 @@ function eqX(sign,k){k=k??FK;const x0=st.Xt,g0=gK(x0,sign,k);if(!isFinite(g0))re
  for(let i=0;i<300;i++){b=a+dir*0.0005;gb=gK(b,sign,k);if(!isFinite(gb))return a;if((gb>0)!==(g0>0))break;a=b;ga=gb}if((gb>0)===(g0>0))return a;
  for(let i=0;i<30;i++){const m=(a+b)/2,gm=gK(m,sign,k);if(!isFinite(gm))break;if((gm>0)===(ga>0)){a=m;ga=gm}else{b=m;gb=gm}}return(a+b)/2}
 function checkSlip(){if(st.held||slide||st.laid)return;const c=cfg(st.Xt);if(!c)return;
- const lim=fsAt(st.Xt);if(c.ratio>lim||c.ratio<-lim){const sign=c.ratio>0?1:-1;lastSlip={xp:c.P.x,yp:c.P.z};st.stuck=false;slide={sign,phase:"jump",target:eqX(sign,2*FK-1)}}}
+ const lim=fsAt(st.Xt);if(c.ratio>lim||c.ratio<-lim){const sign=c.ratio>0?1:-1;lastSlip={xp:c.P.x,yp:c.P.z};st.stuck=false;slide={sign,target:eqX(sign,FK)}}}
 function stick(){if(slide){dots.push(st.Xt-st.off);if(dots.length>200)dots.shift()}slide=null;st.stuck=true}
 const paperMoving=()=>simT-paperT<0.25; // kartka „stoi”, gdy od 0,25 s nie drgnęła (ręka nigdy nie ciągnie idealnie płynnie)
-function step(dt){simT+=dt;if(!slide||st.laid||st.held)return;
- if(slide.phase==="kin")slide.target=eqX(slide.sign,FK);
- const x0=st.Xt,d=slide.target-st.Xt;st.Xt+=d*Math.min(1,dt*(slide.phase==="jump"?35:20));if(Math.abs(slide.target-st.Xt)<2e-5)st.Xt=slide.target;addTrail(x0-st.off,st.Xt-st.off);
- if(slide.phase==="jump"&&st.Xt===slide.target){if(paperMoving())slide.phase="kin";else{stick();checkSlip()}}
- else if(slide.phase==="kin"&&!paperMoving()){stick();checkSlip()}}
+function step(dt){simT+=dt;if(!slide||st.laid||st.held)return;slide.target=eqX(slide.sign,FK);
+ const x0=st.Xt,d=slide.target-st.Xt;st.Xt+=d*Math.min(1,dt*30);if(Math.abs(d)<2e-5)st.Xt=slide.target;addTrail(x0-st.off,st.Xt-st.off);
+ if(!paperMoving()){stick();checkSlip()}}
 // ślad grafitu na kartce: suma przedziałów (współrzędne kartki) — nic się nie „zmazuje”
 function addTrail(a,b){if(Math.abs(a-b)<1e-5)return;let lo=Math.min(a,b),hi=Math.max(a,b);
  for(let i=trail.length-1;i>=0;i--){const t=trail[i];if(t[0]<=hi+2e-4&&t[1]>=lo-2e-4){lo=Math.min(lo,t[0]);hi=Math.max(hi,t[1]);trail.splice(i,1)}}
