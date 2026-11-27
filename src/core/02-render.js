@@ -76,6 +76,14 @@ function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;c
  const n=Math.ceil(L/TILE-1e-9);for(let i=0;i<n;i++){const a=i*TILE,b=Math.min(L,a+TILE),ub=(b-a)/TILE;const p0=add(o2,mul(d,a)),p1=add(o2,mul(d,b));
   TX.push({tex:tapeTile(W,i,opts,mir),pts:[p0,p1,add(p1,mul(w,W)),add(p0,mul(w,W))],uv:[0,0,ub,0,ub,1,0,1]})}}
 
+// tekstura powtarzalna (np. siatka papieru milimetrowego): rysowana raz na płótnie 2^n×2^n, potem kafelkowana
+function repTex(key,size,paint){let t=texCache.get(key);if(t)return t;const c=document.createElement("canvas");c.width=c.height=size;paint(c.getContext("2d"),size);
+ const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+ const af=gl.getExtension("EXT_texture_filter_anisotropic");if(af)gl.texParameterf(gl.TEXTURE_2D,af.TEXTURE_MAX_ANISOTROPY_EXT,8);texCache.set(key,tx);return tx}
+// prostokąt z teksturą: pts = 4 rogi, uv = [u0,v0,u1,v0,u1,v1,u0,v1]
+function texQuadNow(pts,uv,key,size,paint){if(!gl||glLost)return;TX.push({tex:repTex(key,size,paint),pts,uv})}
+
 // ---------- programy GL ----------
 function prog(vs,fs){const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(x);return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);return p}
@@ -111,7 +119,7 @@ const D={ // API rysowania dla zadania
  line:(a,b,w,col)=>line(a,b,w,col),
  quad:(pts,col)=>quadNow(pts,col),
  custom:(z,fn)=>fn(ctx),
- quadNow,lineNow,tapeNow,stripNow,P2,dz,get camPos(){return CB.pos},get pip(){return isPip}};
+ quadNow,lineNow,tapeNow,stripNow,texQuadNow,P2,dz,get camPos(){return CB.pos},get pip(){return isPip}};
 
 // ---------- stały motyw: stół laboratoryjny (sklejka brzozowa, nogi, oskrzynienie, podłoga) ----------
 // Zadanie podaje scene.table={x0,x1,y0,y1}; blat ma górę na z=0.

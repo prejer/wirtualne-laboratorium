@@ -64,38 +64,23 @@ function movePaper(ds){if(st.laid){st.off=Math.max(-0.019,Math.min(0.28,st.off+d
 
 // ---------- rysowanie ----------
 const X=V(1,0,0),Y=V(0,1,0);
-function pencil(D,P,tip){const u=mul(sub(tip,P),1/D_P);const c1=add(P,mul(u,D_P-0.022)),c2=add(P,mul(u,D_P-0.0045));
- D.cyl(P,c1,0.0040,"#f0bd22",{n:6,rot:0.5,seg:0.03,metal:30,spec:0.35,amb:0.5,capCol:"#e8cfa0"});
- D.cyl(c1,c2,0.0035,"#e6c493",{n:12,r1:0.0011,caps:false,amb:0.55});D.cyl(c2,tip,0.0011,"#333",{n:8,r1:0.0002,caps:false,metal:20,spec:0.4});
- const w=nrm(cross(u,Z));const lp=[];for(let k=0;k<=10;k++){const t=k/10*2*Math.PI;lp.push(add(add(P,mul(u,0.004)),add(mul(w,0.0046*Math.cos(t)),mul(nrm(cross(u,w)),0.0046*Math.sin(t)))))}for(let k=0;k<10;k++)D.line(lp[k],lp[k+1],0.0007,"#2b2b2b")}
-function draw(D){const pip=D.pip,c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V(st.Xt,0,0),cp=D.camPos;
- // kartka A4 (poziomo) z delikatną krawędzią
- const o=st.off,p0=0.02+o,p1=p0+PAPW;D.quadNow([V(p0,-0.105,0.0003),V(p1,-0.105,0.0003),V(p1,0.105,0.0003),V(p0,0.105,0.0003)],"#fbfbf7");
- D.lineNow(V(p0,-0.105,0.0003),V(p1,-0.105,0.0003),0.0004,"rgba(0,0,0,.12)");
- for(const x of dots)D.stripNow(V(x+o-0.0005,0,0.00055),V(x+o+0.0005,0,0.00055),0.0009,"rgba(30,30,35,.85)");
+// Scena: wyłącznie przedmioty z biblioteki LAB.sprzet (wspólny wygląd dla wszystkich zadań)
+const S=LAB.sprzet;
+function draw(D){const c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V(st.Xt,0,0);
+ const o=st.off,p0=0.02+o,p1=p0+PAPW;
+ S.kartka({x0:p0,x1:p1,y0:-0.105,y1:0.105});                                        // kartka A4 (ciągnięta)
+ S.papierMm({x0:0.30,x1:0.51,y0:0.13,y1:0.33,z:0.0002});                            // papier milimetrowy z zestawu
+ for(const x of dots)D.stripNow(V(x+o-0.0005,0,0.00055),V(x+o+0.0005,0,0.00055),0.0009,"rgba(30,30,35,.85)");   // ślad grafitu
  for(const[t0,t1]of trail)D.stripNow(V(t0+o,0,0.0005),V(Math.max(t1,t0+0.0004)+o,0,0.0005),0.0005,"rgba(50,50,55,.8)");
  if(st.mark!=null){const mx=st.mark+o;D.lineNow(V(mx-0.003,0.014,0.0006),V(mx+0.003,0.020,0.0006),0.0006,"#555");D.lineNow(V(mx-0.003,0.020,0.0006),V(mx+0.003,0.014,0.0006),0.0006,"#555")}
- // linijka pozioma 30 cm (płaska, grubość 2 mm)
- const ry0=-0.016,ry1=-0.046,rh=0.002;D.faceNow([V(0,ry1,rh),V(0.60,ry1,rh),V(0.60,ry1,0),V(0,ry1,0)],mul(Y,-1),"#d9d9cf");D.faceNow([V(0.60,ry1,0),V(0.60,ry0,0),V(0.60,ry0,rh),V(0.60,ry1,rh)],X,"#d9d9cf");
- D.tapeNow(V(0,ry0,rh-0.0006),V(1,0,0),V(0,-1,0),0.60,0.03,{color:"rgba(250,250,244,.97)"});
- // karton (ściana x = 0)
- D.solid(()=>{const bx=0.15,by=0.18,cb="#c4955f",o2={amb:0.62};
- D.box(V(-bx,0,BOXH/2),mul(X,bx),mul(Y,by),mul(Z,BOXH/2),cb,{...o2,cols:["#c09366",cb,cb,cb,"#c99c6c",cb]});
- D.face([V(0.0006,-0.03,BOXH),V(0.0006,0.03,BOXH),V(0.0006,0.03,BOXH-0.06),V(0.0006,-0.03,BOXH-0.06)],X,"#d2a872",{...o2,decal:true,dz:-0.001,shadow:false});
- D.face([V(-bx-0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH),V(-bx+0.03,-by-0.0006,BOXH-0.06),V(-bx-0.03,-by-0.0006,BOXH-0.06)],mul(Y,-1),"#d2a872",{...o2,decal:true,dz:-0.001,shadow:false});
- D.face([V(-bx-0.03,-by,BOXH+0.0006),V(-bx+0.03,-by,BOXH+0.0006),V(-bx+0.03,by,BOXH+0.0006),V(-bx-0.03,by,BOXH+0.0006)],Z,"#c9a36f",{...o2,decal:true,dz:-0.001,shadow:false});
- D.face([V(0.0008,-0.02,st.zA-0.013),V(0.0008,0.02,st.zA-0.013),V(0.0008,0.02,st.zA+0.013),V(0.0008,-0.02,st.zA+0.013)].reverse(),X,"#ecebdc",{decal:true,dz:-0.001,shadow:false,amb:0.7});});
- const a=A();
- // nić i ołówek (sześciokątny, lakierowany)
- if(st.laid){const y0=-0.058,a0=st.lay,Pl=V(a0+D_P,y0,0.004),tl=V(a0,y0,0.004);pencil(D,Pl,tl);const e=V(a0+D_P+Lc(),y0,0.0007);D.line(add(Pl,V(0.004,0,-0.003)),e,0.0007,"#2b2b2b");
-  D.face([V(e.x-0.006,y0-0.009,0.0009),V(e.x+0.012,y0-0.009,0.0009),V(e.x+0.012,y0+0.009,0.0009),V(e.x-0.006,y0+0.009,0.0009)],Z,"#ecebdc",{shadow:false,amb:0.7,alpha:0.85})}
- else{D.line(a,P,0.0007,"#2b2b2b");pencil(D,P,tip)}
- // spinacz na kartce (uchwyt do ciągnięcia)
- const hx=p1+0.008,hy=-0.0875;D.box(V(hx,hy,0.004),mul(X,0.012),mul(Y,0.016),mul(Z,0.004),"#22252a",{metal:20,spec:0.3});
- D.cyl(V(hx+0.008,hy-0.012,0.008),V(hx+0.026,hy-0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});D.cyl(V(hx+0.008,hy+0.012,0.008),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
- D.cyl(V(hx+0.026,hy-0.012,0.012),V(hx+0.026,hy+0.012,0.012),0.0008,"#b9bfc6",{n:5,metal:40});
- // linijka pionowa (przezroczysta, przed płaszczyzną ołówka)
- const r=st.r;D.custom(D.dz(V(r+0.015,-0.008,0.06))-0.05,()=>D.tapeNow(V(r,-0.008,0),V(0,0,1),V(1,0,0),0.20,0.03,{color:"rgba(250,250,244,.78)",labelUp:"d"}),V(r+0.015,-0.008,0.1));
+ S.linijka({o:V(0,-0.016,0),d:X,w:V(0,-1,0),L:0.60,W:0.03});                        // linijka pozioma 60 cm
+ S.karton({c:V(-0.15,0,0),hx:0.15,hy:0.18,hz:BOXH/2});                               // karton (ściana x = 0)
+ S.tasma({c:V(0,0,st.zA),n:X,u:Y,dl:0.04,szer:0.026});                               // taśma z zaczepem nici
+ if(st.laid){const y0=-0.058,a0=st.lay,Pl=V(a0+D_P,y0,0.004),tl=V(a0,y0,0.004);S.olowek(Pl,tl);const e=V(a0+D_P+Lc(),y0,0.0007);
+  S.nic([add(Pl,V(0.004,0,-0.003)),e]);S.tasma({c:V(e.x+0.003,y0,0.0002),n:Z,u:X,dl:0.018,szer:0.018})}
+ else{S.nic([A(),P]);S.olowek(P,tip)}
+ S.klips({c:V(p1+0.008,-0.0875,0)});                                                  // klips do ciągnięcia kartki
+ S.linijka({o:V(st.r,-0.008,0),d:Z,w:X,L:0.20,W:0.03,przezroczysta:true});           // linijka pionowa (przezroczysta)
 }
 
 LAB.defineTask({id:"of73-2-olowek",

@@ -43,7 +43,13 @@ LAB.defineTask({
 - Przezroczystość: kolor `rgba(…)` lub `{alpha}` — rysowane po bryłach, od najdalszych.
 - Napisy, strzałki Nauki i uchwyty rysuje warstwa 2D nad sceną (`D.P2` daje współrzędne ekranu).
 
+## Sprzęt
+
+Przedmioty rysuj z biblioteki `LAB.sprzet` (`src/core/08-sprzet.js`, lista w `docs/BIBLIOTEKA.md`), a nie od zera — wtedy linijka czy statyw wyglądają tak samo w każdym zadaniu. Nowy, powtarzalny przedmiot dopisz do biblioteki.
+
 ## Wydanie nowej wersji
+
+0. `python3 tests/test_lab.py` — wszystko OK.
 1. Podbij `VERSION` w `src/core/04-shell.js`.
 2. `python3 build.py` — skleja silnik i podmienia `?v=` w `index.html` oraz `sw.js` (aplikacja zainstalowana pobierze nowe pliki).
 3. Nowe zadanie dopisz też do listy `CORE` w `sw.js`, żeby działało offline.

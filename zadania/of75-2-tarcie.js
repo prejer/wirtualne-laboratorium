@@ -48,66 +48,31 @@ const tapeOf=x=>(x-TAPE0)*100;
 // ---------- rysowanie ----------
 const TX0=-0.7,TX1=0.8,TY0=-0.8,TTH=0.028;
 const X=V(1,0,0),Y=V(0,1,0);
-function nutMesh(D,c,ax,held){ // nakrętka M24: klucz 36 mm, grubość 19 mm, otwór Ø24
- const Rc=0.0208,h=0.019,rh=0.0122;const[e1,e2]=[Z,nrm(cross(ax,Z))];const col=held?"#c8b46a":"#8d949c",o={metal:28,spec:0.55,amb:0.35};
- const cor=(i,sg)=>add(c,add(mul(ax,sg*h/2),add(mul(e1,Rc*Math.cos(i*Math.PI/3+Math.PI/6)),mul(e2,Rc*Math.sin(i*Math.PI/3+Math.PI/6)))));
- const hol=(t,sg)=>add(c,add(mul(ax,sg*h/2),add(mul(e1,rh*Math.cos(t)),mul(e2,rh*Math.sin(t)))));
- for(let i=0;i<6;i++){const a0=i*Math.PI/3+Math.PI/6,a1=a0+Math.PI/3,am=(a0+a1)/2;const n=add(mul(e1,Math.cos(am)),mul(e2,Math.sin(am)));
-  D.face([cor(i,-1),cor(i+1,-1),cor(i+1,1),cor(i,1)],n,col,o);
-  for(const sg of[-1,1]){const pts=[cor(i,sg),cor(i+1,sg),hol(a1,sg),hol(am,sg),hol(a0,sg)];D.face(sg>0?pts:pts.reverse(),mul(ax,sg),"#a3aab2",o)}
-  for(let k=0;k<2;k++){const t0=a0+k*Math.PI/6,t1=t0+Math.PI/6,tm=(t0+t1)/2;D.face([hol(t0,-1),hol(t1,-1),hol(t1,1),hol(t0,1)],mul(add(mul(e1,Math.cos(tm)),mul(e2,Math.sin(tm))),-1),"#5d636a",{amb:0.5,shadow:false})}}}
-function clamp(D,x,under){ // ścisk stolarski typu F: prowadnica za rurką, szczęki nad rurką i pod blatem
- const by=0.034,zt=0.026,zb=-0.064;const steel={metal:24,spec:0.5};
- if(under){box(D,V(x,-0.03,zb),0.008,0.032,0.007,"#34383e",steel);D.cyl(V(x,-0.045,zb+0.007),V(x,-0.045,-TTH-0.006),0.004,"#9aa1a9",{metal:30,n:8});
-  D.cyl(V(x,-0.045,-TTH-0.006),V(x,-0.045,-TTH),0.011,"#1f2226",{n:12});D.cyl(V(x,-0.045,zb-0.008),V(x,-0.045,zb-0.06),0.011,"#c2342b",{n:10,r1:0.0095});return}
- D.cyl(V(x,by,zt+0.03),V(x,by,zb-0.012),0.006,"#a7adb5",{n:8,metal:30});
- box(D,V(x,0.012,zt+0.004),0.009,0.026,0.008,"#2a2e33",steel);D.cyl(V(x,-0.004,zt-0.004),V(x,-0.004,TUBEZ+RT),0.008,"#1f2226",{n:10});
- box(D,V(x,0.017,zb),0.008,0.017,0.007,"#34383e",steel)}
-function box(D,c,hx,hy,hz,col,o){D.box(c,mul(X,hx),mul(Y,hy),mul(Z,hz),col,o)}
-function draw(D){const pip=D.pip,F=frame(),A=anchor(),cp=D.camPos;
- D.quadNow([V(-1.5,-1.5,FLOOR),V(1.8,-1.5,FLOOR),V(1.8,1.5,FLOOR),V(-1.5,1.5,FLOOR)],"#a49c90");
- // to, co pod blatem: nogi stołu i dolne szczęki ścisków
- for(const[x,y]of[[TX0+0.05,-0.05],[TX1-0.05,-0.05],[TX0+0.05,TY0+0.05],[TX1-0.05,TY0+0.05]])box(D,V(x,y,(FLOOR-TTH)/2),0.022,0.022,(-FLOOR-TTH)/2,"#b08d5f");
- box(D,V((TX0+TX1)/2,-0.05,-TTH-0.04),(TX1-TX0)/2-0.07,0.01,0.04,"#bd9a6b");
- for(const s of[-0.19,0.19])clamp(D,0.04+s,true);
- D.flush();
- // blat (sklejka brzozowa)
- const t=[V(TX0,TY0,0),V(TX1,TY0,0),V(TX1,0,0),V(TX0,0,0)],b=t.map(p=>add(p,V(0,0,-TTH)));
- D.faceNow([t[3],t[2],b[2],b[3]],Y,"#d4b283");D.faceNow([t[1],t[0],b[0],b[1]],mul(Y,-1),"#d4b283");D.faceNow([t[2],t[1],b[1],b[2]],X,"#c9a675");D.faceNow([t[0],t[3],b[3],b[0]],mul(X,-1),"#c9a675");
- if(cp.z>0){D.faceNow(t,Z,"#e2c597");if(!pip)for(let k=0;k<26;k++){const y=TY0+0.015+k*0.0305;D.lineNow(V(TX0,y,0),V(TX1,y+0.004*Math.sin(k*1.7),0),0.0005,"rgba(140,95,45,.10)")}}
- if(!tapeOnBar)D.tapeNow(V(TAPE0,-0.019,0),V(1,0,0),V(0,1,0),1.5,0.016);
- else{const y0=POLEY-BARL/2;  D.custom(D.dz(V(0,POLEY+BARL/2-0.05,st.H+0.013))-0.03,()=>D.tapeNow(V(-0.008,y0,st.H+0.0122),V(0,1,0),V(1,0,0),BARL,0.016));}
- // statyw oświetleniowy: trójnóg, kolumna teleskopowa, poprzeczka
- const hub=V(0,POLEY,0.13),blk="#26292e",sm={metal:14,spec:0.35};
- for(const a of[Math.PI/2+0.35,Math.PI*7/6,Math.PI*11/6-0.35]){const ft=V(0.23*Math.cos(a),POLEY+0.2*Math.sin(a),0.008);D.cyl(hub,ft,0.0065,blk,{n:8,...sm,caps:false});D.cyl(ft,add(ft,V(0,0,-0.008)),0.011,"#111",{n:8});
-  const mid=add(hub,mul(sub(ft,hub),0.55));D.cyl(V(0,POLEY,0.06),mid,0.0035,blk,{n:6,caps:false})}
- D.cyl(V(0,POLEY,0.05),V(0,POLEY,0.14),0.017,"#1c1e22",{n:12,...sm});D.cyl(V(0,POLEY,0.14),V(0,POLEY,0.40),0.0125,blk,{n:12,...sm});
- D.cyl(V(0,POLEY,0.395),V(0,POLEY,0.425),0.016,"#1c1e22",{n:12});D.cyl(V(0,POLEY+0.012,0.41),V(0,POLEY+0.04,0.41),0.004,"#1c1e22",{n:6});D.cyl(V(0,POLEY+0.04,0.41),V(0,POLEY+0.046,0.41),0.012,"#1c1e22",{n:8});
- D.cyl(V(0,POLEY,0.425),V(0,POLEY,st.H-0.02),0.0095,"#3a3e44",{n:12,metal:20,spec:0.4});
- box(D,V(0,POLEY,st.H),0.018,0.024,0.022,"#1c1e22",sm);D.cyl(V(-0.018,POLEY,st.H),V(-0.045,POLEY,st.H),0.004,"#1c1e22",{n:6});
- D.cyl(V(-0.045,POLEY,st.H),V(-0.05,POLEY,st.H),0.016,"#1c1e22",{n:6,r1:0.006});
- D.cyl(V(0,POLEY-BARL/2,st.H),V(0,POLEY+BARL/2,st.H),0.0125,"#1a1c20",{n:14,seg:0.04,metal:18,spec:0.3,capCol:"#33373d"});
- // ściski i rurka
- for(const s of[-0.19,0.19])clamp(D,0.04+s,false);
+const S=LAB.sprzet;
+function draw(D){const F=frame(),A=anchor(),cp=D.camPos;
+ // stół z podłogą rysuje silnik (scene.table); tu tylko sprzęt z biblioteki + to, co specyficzne dla zadania
+ if(!tapeOnBar)S.miarka({o:V(TAPE0,-0.019,0),d:X,w:Y,L:1.5,W:0.016});
+ else S.miarka({o:V(-0.008,POLEY-BARL/2,st.H+0.0122),d:Y,w:X,L:BARL,W:0.016});
+ S.statyw({baza:V(0,POLEY,0),H:st.H,belka:BARL});
+ for(const s of[-0.19,0.19])S.scisk({x:0.04+s,zGora:TUBEZ+RT,th:TTH});
+ // rurka aluminiowa z rysami i zabrudzeniem (specyficzne dla zadania)
  const e1=add(F.C,mul(F.u,-LT/2)),e2=add(F.C,mul(F.u,LT/2));
  D.cyl(e1,e2,RT,dirty?"#b3ab9c":"#ccd3da",{n:20,seg:0.025,metal:dirty?12:45,spec:dirty?0.25:0.7,capCol:"#6f757c"});
- // rysy i zabrudzenia (na stronie widocznej dla kamery)
  const vis=s0=>{const p=add(F.C,mul(F.u,s0));let d=sub(cp,p);d=nrm(sub(d,mul(F.u,dot(d,F.u))));return{p,d}};
- for(const sc of scratches)for(let j=-3;j<=3;j++){const{p,d}=vis(sc.s+j*sc.w/3);const q=add(p,mul(d,RT*1.02)),w=nrm(cross(F.u,d));D.line(add(q,add(mul(w,0.004),mul(F.u,-0.002))),add(q,add(mul(w,-0.004),mul(F.u,0.002))),0.0005,"rgba(40,40,40,.55)",{cap:"butt"})}
+ for(const sc of scratches)for(let j=-3;j<=3;j++){const{p,d}=vis(sc.s+j*sc.w/3);const q=add(p,mul(d,RT*1.02)),w=nrm(cross(F.u,d));D.line(add(q,add(mul(w,0.004),mul(F.u,-0.002))),add(q,add(mul(w,-0.004),mul(F.u,0.002))),0.0005,"rgba(40,40,40,.55)")}
  if(dirty)for(let j=0;j<16;j++){const s0=-0.23+j*0.031+0.006*Math.sin(j*2.3+dirtPh[0]);const{p,d}=vis(s0);const w=nrm(cross(F.u,d)),q=add(p,add(mul(d,RT*1.02),mul(w,0.003*Math.sin(j*1.9))));D.line(add(q,mul(F.u,-0.004)),add(q,mul(F.u,0.004)),0.004,"rgba(110,85,50,.30)")}
  // wstążka (szerokość wzdłuż osi rurki) i węzeł na poprzeczce
  const col="#ef7417",np=nutPos(),ri={dz:-0.0005};
  const loop=[];for(let i=0;i<=16;i++){const th=i/16*2*Math.PI;loop.push(add(A,V(0.0132*Math.sin(th),0,0.0132*Math.cos(th))))}
  D.band(loop.map(p=>add(p,V(0,0,0))),Y,WRIB,col,{amb:0.5});
- box(D,add(A,V(0,0,-0.016)),0.005,0.0045,0.005,knotHeld?"#ffd23f":"#d8630f");
+ D.box(add(A,V(0,0,-0.016)),mul(X,0.005),mul(Y,0.0045),mul(Z,0.005),knotHeld?"#ffd23f":"#d8630f");
  const A0=add(A,V(0,0,-0.016)),top=add(np,V(0,0,0.0125));
  if(rib.on){const g=geom(rib.s);if(g){const arc=[];for(let i=0;i<=12;i++){const th=g.th*(1-i/12);arc.push(add(g.Cs,add(mul(g.n,(RT+0.0006)*Math.cos(th)),mul(F.v,(RT+0.0006)*Math.sin(th)))))}
   D.band([A0,g.Q],X,WRIB,col,{amb:0.5});D.band(arc,X,WRIB,col,{amb:0.5});D.band([arc[arc.length-1],top],X,WRIB,col,{amb:0.5})}}
  else D.band([A0,top],X,WRIB,col,{amb:0.5});
  const tl=[];for(let i=0;i<=10;i++){const th=i/10*2*Math.PI;tl.push(add(add(np,V(0,0,0.0185)),V(0,0.0062*Math.sin(th),0.0062*Math.cos(th))))}D.band(tl,X,WRIB,col,{amb:0.5});
- nutMesh(D,np,Y,rib.held);
- // chusteczki
- box(D,V(0.5,-0.55,0.018),0.055,0.03,0.018,"#f2f4f7",{cols:[0,0,0,0,"#4a8fd6",0].map(x=>x||"#f2f4f7")});
+ S.nakretka(np,Y,{trzymana:rib.held});
+ S.chusteczki({c:V(0.5,-0.55,0)});
 }
 // podpisy uchwytów w widoku głównym
 
@@ -120,7 +85,7 @@ LAB.defineTask({id:"of75-2-tarcie",
  hints:[{title:"Podpowiedź: układ z rozwiązania",html:"Wahadło (wstążka + nakrętka) przywiązane do poprzeczki; rurka zamocowana ściskami przy krawędzi stołu odpycha wstążkę tuż nad nakrętką o y. Wahadło wychyla się wzdłuż rurki o x. Tarcie statyczne: największe x, przy którym puszczone wahadło stoi. Kinetyczne: zanik amplitudy kolejnych wahnięć. y zmieniasz, przesuwając miejsce przywiązania wzdłuż poprzeczki."},{title:"Podpowiedź: teoria",html:"Spoczynek: mg·x/L ≤ f<sub>s</sub>·mg·y/L ⇒ x<sub>gr</sub> = f<sub>s</sub>·y — f<sub>s</sub> to nachylenie prostej x<sub>gr</sub>(y). Ruch: mg(A₁² − A₂²)/2L = f<sub>k</sub>(mg·y/L)(A₁ + A₂) ⇒ ΔA = A₁ − A₂ = 2f<sub>k</sub>·y, stały spadek na półokres. Licząc n półokresów do zatrzymania z A₁: ΔA ≈ A₁/n, a f<sub>k</sub> to połowa nachylenia ΔA(y). Ani m, ani L nie są potrzebne."}],
  // ukryte parametry — losowane z numeru zestawu
  params:{fs:{min:0.16,max:0.32},kRatio:{min:0.72,max:0.90}},
- scene:{shadowArea:[V(TX0,TY0,0),V(TX1,TY0,0),V(TX1,0,0),V(TX0,0,0)],draw},
+ scene:{table:{x0:TX0,x1:TX1,y0:TY0,y1:0,th:TTH,floor:FLOOR},draw},
  views:[{label:"3D",cam:()=>({t:V(0.03,-0.05,0.2),yaw:Math.PI-0.6,pitch:0.22,dist:1.45})},{label:"Przód",cam:()=>({t:V(0.02,0,0.2),yaw:Math.PI,pitch:0.04,dist:1.35})},{label:"Bok",cam:()=>({t:V(0,-0.12,0.28),yaw:-Math.PI/2,pitch:0.08,dist:1.35})},{label:"Góra",cam:()=>({t:V(0,-0.15,0),yaw:Math.PI,pitch:1.56,dist:1.5})}],
  movables:[
   {id:"nut",label:"Nakrętka",hint:"odchyl wzdłuż rurki i puść",grab:()=>rib.on?{p:nutPos(),r:0.019,axis:V(1,0,0),onStart:()=>{rib.held=true;rib.v=0;0},onMove:ds=>{rib.s=Math.max(-LT/2+0.02,Math.min(LT/2-0.02,rib.s+ds))},onEnd:release}:null},

@@ -52,3 +52,27 @@ Druga stała grupa to **elektryka**: przewody, zasilacz, multimetr, baterie, opo
 2. Dodać papier milimetrowy i plastelinę (11 + 4 zadania).
 3. Moduł obwodów + multimetr, zasilacz, przewody, bateria, opornik, LED — otwiera 7 zadań naraz.
 4. Najłatwiejsze nowe zadania na tym zestawie: **LXXI (obwód RC)**, **LXVI (tranzystor)**, **LXII (tarcie papieru)**, **LX (drut)**, **LXIII (magnesy)**.
+
+## Stan wdrożenia (v0.12)
+
+Biblioteka istnieje w kodzie: `src/core/08-sprzet.js`, dostępna w zadaniach jako `LAB.sprzet` (skrót `const S=LAB.sprzet`). Oba zadania (OF73, OF75) rysują sprzęt wyłącznie z niej.
+
+| Funkcja | Przedmiot |
+|---|---|
+| `linijka({o,d,w,L,W,h,przezroczysta})` | linijka z podziałką mm (zwykła lub przezroczysta) |
+| `miarka({o,d,w,L,W})` | taśma miernicza |
+| `karton({c,hx,hy,hz})` | karton z taśmą pakową |
+| `tasma({c,n,u,dl,szer})` | kawałek taśmy klejącej |
+| `nic(punkty)` | nić (łamana) |
+| `olowek(P,tip)` | ołówek sześciokątny z pętelką |
+| `kartka({x0,x1,y0,y1})` | kartka papieru |
+| `papierMm({x0,x1,y0,y1})` | papier milimetrowy (siatka 1/5/10 mm) |
+| `plastelina({c,r,kolor})` | bryłka plasteliny |
+| `nakretka(c,os,{trzymana})` | nakrętka M24 |
+| `statyw({baza,H,belka})` | statyw z poprzeczką |
+| `scisk({x,zGora})` | ścisk stolarski na krawędzi blatu |
+| `chusteczki({c})`, `klips({c})` | chusteczki, klips do kartki |
+
+Następny krok: moduł obwodów (multimetr, zasilacz, przewody, bateria, opornik, LED), potem łatwe zadania LXXI, LXVI, LXII, LX, LXIII.
+
+Testy regresji: `python3 tests/test_lab.py` (fizyka OF73/OF75 + start zadań bez błędów).
