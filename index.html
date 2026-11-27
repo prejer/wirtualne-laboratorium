@@ -303,6 +303,27 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 /* --- panel Nauki (tylko w trybie Nauka) --- */
 #learn{position:absolute;left:12px;top:58px;z-index:3;min-width:250px;max-width:min(340px,calc(100% - 24px));background:rgba(255,255,255,.95);border-radius:12px;box-shadow:0 8px 28px rgba(20,25,40,.16),0 0 0 1px rgba(0,0,0,.06);padding:8px 12px 10px;font-size:13px;opacity:0;transform:translateX(-14px);pointer-events:none;transition:opacity .28s,transform .28s;visibility:hidden}
 #learn.on{opacity:1;transform:none;pointer-events:auto;visibility:visible}
+/* pokaz rozwiązania */
+.pill.tourb{background:#1f3d63;color:#fff;border-color:#1f3d63}.pill.tourb.on{background:#fff;color:#1f3d63}
+#dock.hid{display:none}
+#tour{position:fixed;right:12px;top:12px;bottom:12px;z-index:4;width:min(372px,calc(100% - 24px));background:rgba(255,255,255,.97);border-radius:14px;box-shadow:0 10px 32px rgba(20,25,40,.2),0 0 0 1px rgba(0,0,0,.06);padding:14px 16px 16px;overflow:auto;display:none;font-size:14px;color:#17212c}
+#tour.on{display:block}
+#stage.touring{margin-right:396px}#stage.touring #dock{display:none}
+#tour .th{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}#tour .th b{font-size:13px;color:#1f3d63}
+#tour .tx{border:0;background:transparent;font-size:16px;cursor:pointer;color:#4a5664;width:30px;height:30px;border-radius:6px}#tour .tx:hover{background:#f0f2f4}
+.tsteps{display:flex;gap:4px;margin-bottom:10px}.tsteps i{flex:1;height:4px;border-radius:2px;background:#dfe4e8}.tsteps i.d{background:#7c95b4}.tsteps i.c{background:#1f3d63}
+#tour .tn{font-size:12.5px;color:#6b7684}
+#tour h3{font-size:19px;margin:2px 0 8px;line-height:1.25}
+.ttxt{line-height:1.55;color:#2c3744}.ttxt p{margin:0 0 8px}.ttxt .fx{font-family:"STIX Two Text",Cambria,serif;font-style:italic;font-size:1.12em;white-space:nowrap}
+.ttxt .tres{display:block;margin:8px 0;padding:8px 10px;background:#eef3f9;border-left:3px solid #1f3d63;border-radius:4px}
+.tbar{height:3px;background:#eef1f3;border-radius:2px;margin:12px 0;overflow:hidden}.tbar span{display:block;height:100%;background:#e6b422;transition:width .25s linear}
+.tctl{display:flex;gap:8px}.tctl .btn{flex:1}.tctl .btn[disabled]{opacity:.4;cursor:default}
+#tourData{margin-top:14px;border-top:1px solid #e6e9ec;padding-top:12px}
+.ttab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:13px}.ttab th{text-align:right;font-weight:600;color:#4a5664;padding:4px 6px;border-bottom:1px solid #dfe4e8}.ttab td{text-align:right;padding:4px 6px;border-bottom:1px solid #f0f2f4}
+.ttab th:first-child,.ttab td:first-child{text-align:left}
+.tempty{color:#8a94a0;margin:0}
+.tplot{width:100%;margin-top:10px;font:11px "Archivo",system-ui,sans-serif;fill:#4a5664}.tplot .gl{stroke:#e6e9ec}.tplot .fit{stroke:#c8372d;stroke-width:1.6}.tplot .pt{fill:#1f3d63}.tplot .ax{font-weight:600;fill:#17212c}
+@media (max-width:760px){#tour{top:auto;height:52%}#stage.touring{margin-right:0}}
 #learn .lh{font:700 11px system-ui;letter-spacing:.04em;text-transform:uppercase;color:#7c3aed;margin:2px 0 6px}
 #learn .lr{display:flex;justify-content:space-between;gap:14px;padding:2.5px 0;border-top:1px solid rgba(0,0,0,.05)}#learn .lr span{color:#555}#learn .lr b{font-variant-numeric:tabular-nums}
 .pill.ico{padding:0 9px;display:inline-flex;align-items:center}.pill.ico svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7}
@@ -337,7 +358,7 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
  var mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)||(mm("(pointer:coarse)")&&!mm("(any-pointer:fine)"));
  var ok=false;try{ok=localStorage.getItem("lab-mobile-ok")==="1"}catch(e){}
  window.LAB_MOBILE=mobile;
- function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.25";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.25";document.body.appendChild(b)};document.body.appendChild(a)}
+ function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.26";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.26";document.body.appendChild(b)};document.body.appendChild(a)}
  var zadanie=/^#[a-z]/.test(location.hash);   // strona główna działa też na telefonie; bramka dopiero przy otwieraniu doświadczenia
  if(!mobile||ok||!zadanie){load();return}
  document.getElementById("gate").classList.add("on");

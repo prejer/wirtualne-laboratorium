@@ -261,7 +261,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.25";
+const VERSION="0.26";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -285,14 +285,14 @@ function shellDOM(){const st=$("stage");st.insertAdjacentHTML("beforeend",`
   <span id="modes" class="seg" title="Pomiar: jak w laboratorium · Nauka: siły, kąty i odległości na żywo"><button class="pill on" data-m="pomiar">Pomiar</button><button class="pill" data-m="nauka">Nauka</button></span>
   <button class="pill" id="bSpeed" title="Zwolnione tempo (ułatwienie symulacji)">×1</button>
   <button class="pill ico" id="bNew" title="Nowy zestaw pomiarowy — losuje ukryte parametry">${'<svg viewBox="0 0 24 24">'+ICONS.dice+'</svg>'}</button>
-  <button class="pill" id="bHelp" title="Sterowanie">?</button><button class="pill" id="bTask">Zadanie</button></div>
+  <button class="pill tourb" id="bTour" title="Kamera przeprowadzi przez doświadczenie krok po kroku" hidden>▶ Pokaz rozwiązania</button><button class="pill" id="bHelp" title="Sterowanie">?</button><button class="pill" id="bTask">Zadanie</button></div>
  <div id="help"><b>Poruszanie się</b><table>
   <tr><td>obrót</td><td>przeciągnij · dwa palce na touchpadzie · strzałki</td></tr>
   <tr><td>przybliżanie</td><td>szczypanie · kółko myszy · dwuklik (do kursora)</td></tr>
   <tr><td>przesuwanie</td><td>Shift + przeciągnij · Shift + dwa palce · prawy przycisk</td></tr>
   <tr><td>latanie</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>E</kbd>/<kbd>Spacja</kbd> w górę · <kbd>Q</kbd> w dół · <kbd>Shift</kbd> szybciej</td></tr>
   <tr><td>przedmioty</td><td>złap i przeciągnij · ✋ na pasku pokazuje przedmiot · <kbd>Esc</kbd> odznacza</td></tr></table><p style="margin:10px 0 0;font-size:13px">Grafika: <button class="btn" id="bQual" style="padding:4px 10px"></button></p><button class="btn" id="helpX">OK</button></div>
- <aside id="learn" aria-hidden="true"></aside>
+ <aside id="learn" aria-hidden="true"></aside><aside id="tour" aria-live="polite"></aside>
  <div id="dock"><div class="dsec" id="dockMove"></div><div class="dsplit"></div><div class="dsec" id="dockAct"></div></div>
  <div id="hint"></div><div id="status"></div><div id="ver" title="Dotknij: diagnostyka">v${VERSION} · Wirtualne Laboratorium</div><pre id="diag"></pre>`)}
 
@@ -351,7 +351,7 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  // ekran startowy i treść zadania
  const ov=$("startOv");ov.querySelector(".box").innerHTML=`<div class="kick">${T.meta.kicker}</div><h2>${T.meta.title}</h2><p>${T.meta.desc}</p>${saved?`<p class="resume">Układ czeka tak, jak go zostawiłeś.</p>`:""}
   <div class="row"><button class="btn p big" id="goStart">${saved?"Wróć do układu":"Wejdź do laboratorium"}</button><button class="btn" id="goTask">Treść zadania</button></div><p class="small">Zestaw nr <b>${seed}</b> · <a href="#" id="newS">nowy zestaw</a></p>`;
- $("taskBox").innerHTML=T.taskHtml+(T.hints||[]).map(h=>`<details><summary>${h.title}</summary><div class="small">${h.html}</div></details>`).join("")+`<div class="row"><button class="btn p" id="taskX">Wracam</button></div>`;
+ $("taskBox").innerHTML=T.taskHtml+(T.hints||[]).map((h,i)=>typeof h==="string"?{title:"Wskazówka "+(i+1),html:h}:h).map(h=>`<details><summary>${h.title}</summary><div class="small">${h.html}</div></details>`).join("")+`<div class="row"><button class="btn p" id="taskX">Wracam</button></div>`;
  $("goStart").onclick=()=>{ov.classList.remove("on");try{if(!localStorage.getItem("lab-help-seen"))$("help").classList.add("on")}catch(e){}T.start&&T.start(!!saved)};$("goTask").onclick=()=>$("taskOv").classList.add("on");
  const newSet=()=>{location.hash="#"+T.id+"/"+(1000+Math.floor(Math.random()*899000))};
  $("newS").onclick=e=>{e.preventDefault();newSet()};
@@ -369,12 +369,13 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
   `błąd: ${GLSTAT.err||"-"}`},500);
  $("bHelp").onclick=()=>$("help").classList.toggle("on");{const q=$("bQual");q.textContent=LQ?"lżejsza — przełącz na pełną":"pełna — przełącz na lżejszą";q.onclick=()=>{try{localStorage.setItem("lab-quality",LQ?"full":"low")}catch(e){}location.reload()}}$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
  const bs=$("bSpeed");bs.onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];bs.textContent=speed===1?"×1":"×¼";bs.classList.toggle("on",speed!==1)};
+ if(T.tour){$("bTour").hidden=false;$("bTour").onclick=()=>TOUR?tourClose():tourOpen()}
  $("bZad").onclick=()=>{renderCatalog(window.LAB_TASKS||[]);$("catalog").classList.add("on")};
  // zapis stanu (z parametrami ukrytymi)
  const persist=()=>{if(T.getState)try{localStorage.setItem(SKEY,JSON.stringify({...T.getState(),__params:P}))}catch(e){}};setInterval(persist,2000);document.addEventListener("visibilitychange",persist);window.addEventListener("pagehide",persist);
  buildDock();resize();Object.assign(cam,T.views[0].cam());cam.dist*=2;cam.yaw-=0.6;
  let tPrev=performance.now();function loop(now){let dt=Math.min(0.05,(now-tPrev)/1000);tPrev=now;
-  flyStep(dt);T.update(dt*speed);
+  flyStep(dt);T.update(dt*speed*(TOUR?(TOUR.play?TOUR.k:0):1));tourTick(dt);
   // rysujemy tylko, gdy coś się zmieniło (kamera, stan układu, uchwyty, tryb) — mniej pracy GPU, mniej utrat grafiki na tabletach
   const key=frameKey();if(key!==lastKey||camAnim||grab||glLost){lastKey=key;learnRows=null;draw();renderLearn(mode==="nauka"?learnRows:null)}
   status();syncUI();requestAnimationFrame(loop)}
@@ -733,6 +734,41 @@ Object.assign(sprzet,{
  // Napis (cyfry, znaczki) na powierzchni: pts jak w wyświetlaczu, tekst jasny/ciemny, tło przezroczyste.
  napis(pts,tekst,kolor="#f2f2f2"){texQuadNow(pts,[0,0,1,0,1,1,0,1],"lbl:"+tekst+"|"+kolor,128,(g,S)=>{g.clearRect(0,0,S,S);g.fillStyle=kolor;g.font=`700 ${Math.round(S*0.8)}px system-ui,sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText(tekst,S/2,S*0.55)})}
 });
+
+// ---------- pokaz rozwiązania: kamera prowadzi przez doświadczenie, pomiary zbierają się na bieżąco ----------
+// Zadanie podaje T.tour = {steps:[{title, text (tekst lub funkcja), cam (funkcja → widok), enter(), until() → true gdy krok skończony,
+//   min, max [s], speed (przyspieszenie symulacji), nauka (tryb Nauka w tym kroku)}], table:{cols:[...], rows:()=>[[...]]}, plot:()=>{pts,fit,xl,yl}}
+let TOUR=null;
+function tourOpen(){if(!T.tour)return;TOUR={i:-1,t:0,play:true,k:1,doneAt:null};$("stage").classList.add("touring");$("tour").classList.add("on");$("bTour").classList.add("on");tourGo(0)}
+function tourClose(){if(!TOUR)return;TOUR=null;$("tour").classList.remove("on");$("stage").classList.remove("touring");$("bTour").classList.remove("on");setMode("pomiar");T.tour.exit&&T.tour.exit()}
+function tourGo(i){const S=T.tour.steps;if(i<0)i=0;if(i>=S.length){tourRender();return}TOUR.i=i;TOUR.t=0;TOUR.doneAt=null;const s=S[i];TOUR.k=s.speed||1;
+ if(s.cam)goCam(s.cam(),s.camMs||1500);setMode(s.nauka?"nauka":"pomiar");s.enter&&s.enter();tourRender()}
+function tourTick(dt){if(!TOUR)return;const s=T.tour.steps[TOUR.i];if(!s)return;TOUR.t+=dt;
+ const ok=TOUR.t>=(s.min??3)&&(!s.until||s.until())||TOUR.t>=(s.max??120);
+ if(ok&&TOUR.doneAt==null){TOUR.doneAt=TOUR.t;tourRender()}
+ if(TOUR.play&&TOUR.doneAt!=null&&TOUR.t-TOUR.doneAt>1.2&&TOUR.i<T.tour.steps.length-1)tourGo(TOUR.i+1);
+ if((TOUR._r=(TOUR._r||0)+dt)>0.25){TOUR._r=0;tourLive()}}
+function tourPlot(){const p=T.tour.plot&&T.tour.plot();if(!p||p.pts.length<2)return"";const W=300,H=190,m={l:40,r:10,t:10,b:38};
+ const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);const px=(x1-x0)*0.12||0.1,py=(y1-y0)*0.12||0.1;x0-=px;x1+=px;y0-=py;y1+=py;
+ const X=x=>m.l+(x-x0)/(x1-x0)*(W-m.l-m.r),Y=y=>H-m.b-(y-y0)/(y1-y0)*(H-m.t-m.b);
+ const tick=(a,b)=>{const st=Math.pow(10,Math.floor(Math.log10((b-a)/3)));const s=(b-a)/st>8?st*2:st;const r=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)r.push(+v.toFixed(6));return r};
+ let g=`<svg viewBox="0 0 ${W} ${H}" class="tplot" role="img" aria-label="${p.xl} i ${p.yl}">`;
+ for(const v of tick(x0,x1))g+=`<line x1="${X(v)}" y1="${m.t}" x2="${X(v)}" y2="${H-m.b}" class="gl"/><text x="${X(v)}" y="${H-m.b+15}" text-anchor="middle">${fmt(v,2)}</text>`;
+ for(const v of tick(y0,y1))g+=`<line x1="${m.l}" y1="${Y(v)}" x2="${W-m.r}" y2="${Y(v)}" class="gl"/><text x="${m.l-5}" y="${Y(v)+3.5}" text-anchor="end">${fmt(v,2)}</text>`;
+ if(p.fit)g+=`<line x1="${X(x0)}" y1="${Y(p.fit.b+p.fit.a*x0)}" x2="${X(x1)}" y2="${Y(p.fit.b+p.fit.a*x1)}" class="fit"/>`;
+ for(const[x,y]of p.pts)g+=`<circle cx="${X(x)}" cy="${Y(y)}" r="3.6" class="pt"/>`;
+ return g+`<text x="${(W+m.l)/2}" y="${H-3}" text-anchor="middle" class="ax">${p.xl}</text><text x="11" y="${(H-m.b)/2}" text-anchor="middle" class="ax" transform="rotate(-90 11 ${(H-m.b)/2})">${p.yl}</text></svg>`}
+function tourLive(){if(!TOUR)return;const s=T.tour.steps[TOUR.i];const tx=$("tourTxt");if(tx&&typeof s.text==="function"){const h=s.text();if(tx.innerHTML!==h)tx.innerHTML=h}
+ const tb=T.tour.table,rows=tb?tb.rows():[];const k=JSON.stringify(rows);if(k!==TOUR._rows){TOUR._rows=k;$("tourData").innerHTML=(rows.length?`<table class="ttab"><thead><tr>${tb.cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table>`:`<p class="tempty">Pomiary pojawią się tutaj.</p>`)+tourPlot()}
+ const pb=$("tourBar");if(pb)pb.style.width=(TOUR.doneAt!=null?100:Math.min(96,100*TOUR.t/Math.max(s.min??3,1)))+"%"}
+function tourRender(){if(!TOUR)return;const S=T.tour.steps,s=S[TOUR.i],n=S.length,last=TOUR.i===n-1;
+ $("tour").innerHTML=`<div class="th"><b>Pokaz rozwiązania</b><button class="tx" id="tourX" aria-label="Zakończ pokaz">✕</button></div>
+  <div class="tsteps" aria-hidden="true">${S.map((_,j)=>`<i class="${j<TOUR.i?"d":j===TOUR.i?"c":""}"></i>`).join("")}</div>
+  <div class="tn">Krok ${TOUR.i+1} z ${n}${TOUR.k>1?` · symulacja przyspieszona ×${TOUR.k}`:""}</div><h3>${s.title}</h3><div class="ttxt" id="tourTxt">${typeof s.text==="function"?s.text():s.text}</div>
+  <div class="tbar"><span id="tourBar"></span></div>
+  <div class="tctl"><button class="btn" id="tPrev"${TOUR.i?"":" disabled"}>Wstecz</button><button class="btn" id="tPlay">${TOUR.play?"Pauza":"Wznów"}</button><button class="btn p" id="tNext">${last?"Zakończ":"Dalej"}</button></div>
+  <div id="tourData"></div>`;TOUR._rows=null;tourLive();
+ $("tourX").onclick=tourClose;$("tPrev").onclick=()=>tourGo(TOUR.i-1);$("tNext").onclick=()=>last?tourClose():tourGo(TOUR.i+1);$("tPlay").onclick=()=>{TOUR.play=!TOUR.play;tourRender()}}
 
 return{sprzet,_draw:()=>draw(),_grabs:()=>grabList(),defineTask,params,screenOf,V,add,sub,mul,dot,cross,len,nrm,lerp,Z,goCam,flash,showHint,hideHint,viz,fmt,num,esc,gauss,get seed(){return seed},get P(){return P},VERSION};
 })();

@@ -9,7 +9,7 @@ const TB={x0:-0.5,x1:0.5,y0:-0.62,y1:0,th:0.028,floor:FLOOR};
 const BETA=1.8751,SIG=0.7341,PHI1=2.7242;
 const phi=xi=>(Math.cosh(BETA*xi)-Math.cos(BETA*xi)-SIG*(Math.sinh(BETA*xi)-Math.sin(BETA*xi)))/PHI1;   // postać drgań, φ(1)=1
 const st={L:0.26,clipD:0.016,sound:true};
-let lastDet=0,q=0,qd=0,held=false,clip={on:true,z:0,v:0,air:false},aEnv=0,lastClick=0,tJump=0;
+let simT=0,tAir=-1,tRel=0,lastDet=0,q=0,qd=0,held=false,clip={on:true,z:0,v:0,air:false},aEnv=0,lastClick=0,tJump=0;
 function mech(){const h=P.h,L=st.L,Le=L+P.delta,A=BW*h,I=BW*h*h*h/12,mB=RHO*A*L;
  const f0=BETA*BETA/(2*Math.PI)*Math.sqrt(E*I/(RHO*A))/(Le*Le);const xi=Math.max(0,Math.min(1,(L-st.clipD)/L)),ph=phi(xi);
  const f=f0/Math.sqrt(1+P.mc*ph*ph/(0.2427*mB));const sag=x=>{const w=RHO*A*g;return w*x*x*(6*L*L-4*L*x+x*x)/(24*E*I)};return{f,w:2*Math.PI*f,ph,xi,sag,L,mB,acrit:g/Math.pow(2*Math.PI*f,2)/ph}}
@@ -17,12 +17,12 @@ function mech(){const h=P.h,L=st.L,Le=L+P.delta,A=BW*h,I=BW*h*h*h/12,mB=RHO*A*L;
 const surf=(x,M)=>-M.sag(x)+q*phi(x/M.L)+0.0;
 let actx=null;function click(vol){if(!st.sound)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const n=Math.floor(actx.sampleRate*0.006),b=actx.createBuffer(1,n,actx.sampleRate),d=b.getChannelData(0);
  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(n*0.18));const s=actx.createBufferSource(),gn=actx.createGain();gn.gain.value=Math.min(0.6,0.08+vol*2);s.buffer=b;s.connect(gn).connect(actx.destination);s.start()}catch(e){}}
-function step(dt){const M=mech();
+function step(dt){simT+=dt;const M=mech();
  if(!held){const acc=-M.w*M.w*q-(M.w/P.Q)*qd;qd+=acc*dt;q+=qd*dt}
  const amp=Math.hypot(q,qd/M.w);aEnv=amp;
  // spinacz na x = L − clipD
  const x=st.L-st.clipD,zb=surf(x,M),vb=qd*M.ph,ab=(held?0:(-M.w*M.w*q-(M.w/P.Q)*qd))*M.ph;
- if(!clip.air){clip.z=zb;clip.v=vb;if(ab<-g){clip.air=true;lastDet=aEnv*M.ph}}
+ if(!clip.air){clip.z=zb;clip.v=vb;if(ab<-g){clip.air=true;lastDet=aEnv*M.ph;tAir=simT}}
  else{clip.v-=g*dt;clip.z+=clip.v*dt;if(clip.z<=zb){const rel=vb-clip.v;clip.z=zb;clip.v=vb;clip.air=false;tJump=0.15;const now=performance.now();if(rel>0.004&&now-lastClick>12){click(rel);lastClick=now}}}
  tJump=Math.max(0,tJump-dt)}
 function bladePts(M){const pts=[],n=36,y0=YC-(BLEN-st.L);pts.push([y0,0]);pts.push([YC,0]);for(let i=1;i<=n;i++){const x=st.L*i/n;pts.push([YC+x,surf(x,M)])}return pts}
@@ -47,8 +47,46 @@ function draw(D){const M=mech(),hh=Math.max(P.h/2,0.00035),top=2*hh;
  const xs=-0.0345;S.papierMmNa([V(xs,0.08,0.045),V(xs,0.32,0.045),V(xs,0.32,-0.105),V(xs,0.08,-0.105)],0.24,0.15,2);
  S.tasma({c:V(xs+0.0003,0.11,-0.09),n:V(1,0,0),u:Z,dl:0.04,szer:0.02});S.tasma({c:V(xs+0.0003,0.29,-0.09),n:V(1,0,0),u:Z,dl:0.04,szer:0.02});
  // linijka na stole (do L)
- S.linijka({o:V(0.04,-0.30,0),d:V(0,1,0),w:V(1,0,0),L:0.30})}
-LAB.defineTask({id:"of59-2-brzeszczot",
+ S.linijka({o:V(0.04,-0.30,0),d:V(0,1,0),w:V(1,0,0),L:0.30});
+ if(TR.ruler)S.linijka({o:V(BX-BW/2,YC,top+0.0004),d:V(0,1,0),w:V(1,0,0),L:0.30,W:0.03})}   // w pokazie: linijka przyłożona do brzeszczotu, zero przy krawędzi klocka
+// ---------- pokaz rozwiązania ----------
+const TR={rows:[],seq:null,ruler:false};const F=(v,d)=>LAB.fmt(v,d);
+function pluck(){held=false;q=-0.04;qd=0;clip.air=false;tRel=simT;tAir=-1;lastDet=0}
+const quiet=()=>tAir>tRel&&simT-tAir>1.0;           // spinacz ucichł na co najmniej 1 s
+function record(){const a=lastDet,f=Math.sqrt(g/a)/(2*Math.PI);TR.rows.push({L:st.L,a,f})}
+const fitLog=()=>{const P=TR.rows.map(r=>[Math.log(r.L),Math.log(r.f)]);const n=P.length;if(n<2)return null;const mx=P.reduce((s,p)=>s+p[0],0)/n,my=P.reduce((s,p)=>s+p[1],0)/n;
+ let sxy=0,sxx=0;for(const[x,y]of P){sxy+=(x-mx)*(y-my);sxx+=(x-mx)**2}const a=sxy/sxx;return{a,b:my-a*mx}};
+const camSide=d=>({t:V(0,0.13,-0.01),yaw:Math.PI/2-0.02,pitch:0.04,dist:d||0.45});
+const camEnd=()=>({t:V(-0.02,YC+st.L-0.01,-0.012),yaw:Math.PI/2-0.05,pitch:0.04,dist:0.16});
+const DL=[0.24,0.21,0.18,0.15,0.12];
+const TOURDEF={exit(){q=0;qd=0;TR.ruler=false},
+ table:{cols:["L [cm]","a [mm]","f [Hz]","ln(L/m)","ln(f/Hz)"],rows:()=>TR.rows.map(r=>[F(r.L*100,1),F(r.a*1000,2),F(r.f,2),F(Math.log(r.L),3),F(Math.log(r.f),3)])},
+ plot:()=>{const f=fitLog();return{pts:TR.rows.map(r=>[Math.log(r.L),Math.log(r.f)]),fit:f,xl:"ln(L / 1 m)",yl:"ln(f / 1 Hz)"}},
+ steps:[
+ {title:"Układ pomiarowy",cam:()=>({t:V(0,0.08,-0.02),yaw:2.2,pitch:0.38,dist:0.75}),min:7,enter(){TR.rows=[];TR.ruler=false;q=0;qd=0;held=false;st.L=0.27;st.clipD=0.016},
+  text:`<p>Stalowy brzeszczot jest dociśnięty do krawędzi stołu drewnianym klockiem i ściskiem. Wystaje poza stół na długość <span class="fx">L</span> — to drga.</p><p>Na wolnym końcu leży zwykły spinacz biurowy, a za końcem stoi pudło z przyklejonym papierem milimetrowym: na nim odczytamy amplitudę drgań.</p>`},
+ {title:"Długość części drgającej",cam:()=>({t:V(BX+0.01,YC+st.L*0.5,0.0),yaw:0.3,pitch:1.1,dist:0.55}),min:7,enter(){q=0;qd=0;TR.ruler=true},
+  text:()=>`<p>Linijką mierzymy odległość od krawędzi klocka do końca brzeszczotu.</p><span class="tres">L = ${F(st.L*100,1)} cm</span><p>Hipoteza z zadania: <span class="fx">f = A·L<sup>γ</sup></span>. Żeby ją sprawdzić, potrzebujemy częstości dla kilku długości.</p>`},
+ {title:"Wzbudzamy drgania",cam:()=>camSide(0.45),min:5,nauka:true,enter(){TR.ruler=false;pluck()},
+  text:`<p>Odginamy koniec o około 4 cm i puszczamy. Spinacz zaczyna podskakiwać — słychać grzechotanie.</p><p>Dlaczego? Spinacz leży na brzeszczocie swobodnie. Gdy brzeszczot spada w dół z przyspieszeniem większym niż <span class="fx">g</span>, „ucieka” spod spinacza i spinacz na chwilę się odrywa.</p><p>Strzałki w trybie Nauka: fioletowa to przyspieszenie brzeszczotu, czerwona to <span class="fx">g</span>.</p>`},
+ {title:"Amplituda maleje",cam:camEnd,min:4,max:60,nauka:true,until:quiet,
+  text:()=>`<p>Drgania są tłumione, więc amplituda maleje. Maleje też największe przyspieszenie <span class="fx">a<sub>max</sub> = (2πf)²·A</span>.</p><p>Obserwujemy koniec brzeszczotu na tle papieru milimetrowego i czekamy na chwilę, w której spinacz przestaje podskakiwać.</p><span class="tres">amplituda przy spinaczu: ${F(aEnv*mech().ph*1000,1)} mm · spinacz ${clip.air||simT-tAir<0.15?"podskakuje":"leży"}</span>`},
+ {title:"Odczyt i obliczenie f",cam:camEnd,min:9,enter(){record()},
+  text:()=>{const r=TR.rows[TR.rows.length-1]||{a:1,f:0};return`<p>Spinacz ucichł, gdy amplituda na papierze wynosiła</p><span class="tres">a = ${F(r.a*1000,2)} mm</span><p>W tej chwili największe przyspieszenie brzeszczotu jest równe dokładnie <span class="fx">g</span>:</p><p><span class="fx">(2πf)²·a = g  ⇒  f = (1/2π)·√(g/a)</span></p><span class="tres">f = ${F(r.f,2)} Hz</span><p>Częstość zmierzyliśmy bez stopera — samą linijką.</p>`}},
+ {title:"Kolejne długości",cam:()=>camSide(0.55),speed:3,min:3,max:400,
+  enter(){TR.seq={i:0,ph:"set",t:0}},
+  until(){const S=TR.seq;if(!S)return true;if(S.i>=DL.length)return true;
+   if(S.ph==="set"){st.L=DL[S.i];q=0;qd=0;S.ph="go";S.t=simT}
+   else if(S.ph==="go"&&simT-S.t>0.4){pluck();S.ph="wait"}
+   else if(S.ph==="wait"&&quiet()){record();S.i++;S.ph="set"}
+   return false},
+  text:()=>{const S=TR.seq||{i:0};return`<p>Powtarzamy to samo dla krótszych brzeszczotów: wsuwamy go głębiej pod klocek, odginamy, puszczamy i czekamy, aż spinacz ucichnie.</p><span class="tres">L = ${F(st.L*100,1)} cm · pomiar ${Math.min(S.i+1,DL.length)} z ${DL.length}</span><p>Krótszy brzeszczot drga szybciej, więc spinacz ucicha przy mniejszej amplitudzie.</p>`}},
+ {title:"Wykres logarytmiczny",cam:()=>({t:V(0,0.08,-0.02),yaw:2.2,pitch:0.38,dist:0.75}),min:10,enter(){q=0;qd=0},
+  text:()=>{const f=fitLog();return`<p>Logarytmujemy hipotezę: <span class="fx">ln f = ln A + γ·ln L</span>. Jeśli jest prawdziwa, punkty (ln L, ln f) leżą na prostej, a jej nachylenie to <span class="fx">γ</span>.</p>${f?`<span class="tres">γ = ${F(f.a,2)}</span>`:""}<p>Punkty układają się na prostej — hipoteza się potwierdza. Teoria sprężystej belki zamocowanej jednym końcem daje <span class="fx">γ = −2</span>.</p>`}},
+ {title:"Skąd odchylenie od −2",cam:()=>({t:V(0.02,-0.04,0.02),yaw:-0.5,pitch:0.45,dist:0.35}),min:8,
+  text:`<p>Wynik zwykle wychodzi trochę różny od −2, i tak jest też w rozwiązaniu Komitetu. Powody:</p><p>• zamocowanie nie jest idealnie sztywne — brzeszczot ugina się też trochę pod klockiem, więc „efektywna” długość jest większa od zmierzonej,<br>• spinacz dokłada masę na końcu i obniża częstość,<br>• amplitudę odczytujemy z dokładnością do około pół milimetra.</p><p>Przy samodzielnym pomiarze warto zrobić kilka odczytów dla każdej długości i oszacować niepewność γ z rozrzutu punktów.</p>`}
+]};
+LAB.defineTask({id:"of59-2-brzeszczot",tour:TOURDEF,
  meta:{kicker:"LIX OF · II etap · 2009/10",title:"Drgania brzeszczotu",desc:"Brzeszczot w ścisku przy krawędzi stołu, spinacz na końcu, papier milimetrowy. Sprawdź hipotezę f = A·L^γ."},
  taskHtml:`<h2>Drgania brzeszczotu</h2><p>Hipoteza: częstość drgań brzeszczotu zamocowanego jednym końcem zależy od długości części drgającej L jak <b>f = A·L<sup>γ</sup></b>.</p>
  <p><b>Masz:</b> stalowy brzeszczot, ścisk stolarski z klockiem, papier milimetrowy (szablon za końcem brzeszczotu), spinacz biurowy, linijkę.</p>

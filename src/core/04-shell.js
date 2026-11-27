@@ -2,7 +2,7 @@
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.25";
+const VERSION="0.26";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -26,14 +26,14 @@ function shellDOM(){const st=$("stage");st.insertAdjacentHTML("beforeend",`
   <span id="modes" class="seg" title="Pomiar: jak w laboratorium · Nauka: siły, kąty i odległości na żywo"><button class="pill on" data-m="pomiar">Pomiar</button><button class="pill" data-m="nauka">Nauka</button></span>
   <button class="pill" id="bSpeed" title="Zwolnione tempo (ułatwienie symulacji)">×1</button>
   <button class="pill ico" id="bNew" title="Nowy zestaw pomiarowy — losuje ukryte parametry">${'<svg viewBox="0 0 24 24">'+ICONS.dice+'</svg>'}</button>
-  <button class="pill" id="bHelp" title="Sterowanie">?</button><button class="pill" id="bTask">Zadanie</button></div>
+  <button class="pill tourb" id="bTour" title="Kamera przeprowadzi przez doświadczenie krok po kroku" hidden>▶ Pokaz rozwiązania</button><button class="pill" id="bHelp" title="Sterowanie">?</button><button class="pill" id="bTask">Zadanie</button></div>
  <div id="help"><b>Poruszanie się</b><table>
   <tr><td>obrót</td><td>przeciągnij · dwa palce na touchpadzie · strzałki</td></tr>
   <tr><td>przybliżanie</td><td>szczypanie · kółko myszy · dwuklik (do kursora)</td></tr>
   <tr><td>przesuwanie</td><td>Shift + przeciągnij · Shift + dwa palce · prawy przycisk</td></tr>
   <tr><td>latanie</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>E</kbd>/<kbd>Spacja</kbd> w górę · <kbd>Q</kbd> w dół · <kbd>Shift</kbd> szybciej</td></tr>
   <tr><td>przedmioty</td><td>złap i przeciągnij · ✋ na pasku pokazuje przedmiot · <kbd>Esc</kbd> odznacza</td></tr></table><p style="margin:10px 0 0;font-size:13px">Grafika: <button class="btn" id="bQual" style="padding:4px 10px"></button></p><button class="btn" id="helpX">OK</button></div>
- <aside id="learn" aria-hidden="true"></aside>
+ <aside id="learn" aria-hidden="true"></aside><aside id="tour" aria-live="polite"></aside>
  <div id="dock"><div class="dsec" id="dockMove"></div><div class="dsplit"></div><div class="dsec" id="dockAct"></div></div>
  <div id="hint"></div><div id="status"></div><div id="ver" title="Dotknij: diagnostyka">v${VERSION} · Wirtualne Laboratorium</div><pre id="diag"></pre>`)}
 
@@ -92,7 +92,7 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  // ekran startowy i treść zadania
  const ov=$("startOv");ov.querySelector(".box").innerHTML=`<div class="kick">${T.meta.kicker}</div><h2>${T.meta.title}</h2><p>${T.meta.desc}</p>${saved?`<p class="resume">Układ czeka tak, jak go zostawiłeś.</p>`:""}
   <div class="row"><button class="btn p big" id="goStart">${saved?"Wróć do układu":"Wejdź do laboratorium"}</button><button class="btn" id="goTask">Treść zadania</button></div><p class="small">Zestaw nr <b>${seed}</b> · <a href="#" id="newS">nowy zestaw</a></p>`;
- $("taskBox").innerHTML=T.taskHtml+(T.hints||[]).map(h=>`<details><summary>${h.title}</summary><div class="small">${h.html}</div></details>`).join("")+`<div class="row"><button class="btn p" id="taskX">Wracam</button></div>`;
+ $("taskBox").innerHTML=T.taskHtml+(T.hints||[]).map((h,i)=>typeof h==="string"?{title:"Wskazówka "+(i+1),html:h}:h).map(h=>`<details><summary>${h.title}</summary><div class="small">${h.html}</div></details>`).join("")+`<div class="row"><button class="btn p" id="taskX">Wracam</button></div>`;
  $("goStart").onclick=()=>{ov.classList.remove("on");try{if(!localStorage.getItem("lab-help-seen"))$("help").classList.add("on")}catch(e){}T.start&&T.start(!!saved)};$("goTask").onclick=()=>$("taskOv").classList.add("on");
  const newSet=()=>{location.hash="#"+T.id+"/"+(1000+Math.floor(Math.random()*899000))};
  $("newS").onclick=e=>{e.preventDefault();newSet()};
@@ -110,12 +110,13 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
   `błąd: ${GLSTAT.err||"-"}`},500);
  $("bHelp").onclick=()=>$("help").classList.toggle("on");{const q=$("bQual");q.textContent=LQ?"lżejsza — przełącz na pełną":"pełna — przełącz na lżejszą";q.onclick=()=>{try{localStorage.setItem("lab-quality",LQ?"full":"low")}catch(e){}location.reload()}}$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
  const bs=$("bSpeed");bs.onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];bs.textContent=speed===1?"×1":"×¼";bs.classList.toggle("on",speed!==1)};
+ if(T.tour){$("bTour").hidden=false;$("bTour").onclick=()=>TOUR?tourClose():tourOpen()}
  $("bZad").onclick=()=>{renderCatalog(window.LAB_TASKS||[]);$("catalog").classList.add("on")};
  // zapis stanu (z parametrami ukrytymi)
  const persist=()=>{if(T.getState)try{localStorage.setItem(SKEY,JSON.stringify({...T.getState(),__params:P}))}catch(e){}};setInterval(persist,2000);document.addEventListener("visibilitychange",persist);window.addEventListener("pagehide",persist);
  buildDock();resize();Object.assign(cam,T.views[0].cam());cam.dist*=2;cam.yaw-=0.6;
  let tPrev=performance.now();function loop(now){let dt=Math.min(0.05,(now-tPrev)/1000);tPrev=now;
-  flyStep(dt);T.update(dt*speed);
+  flyStep(dt);T.update(dt*speed*(TOUR?(TOUR.play?TOUR.k:0):1));tourTick(dt);
   // rysujemy tylko, gdy coś się zmieniło (kamera, stan układu, uchwyty, tryb) — mniej pracy GPU, mniej utrat grafiki na tabletach
   const key=frameKey();if(key!==lastKey||camAnim||grab||glLost){lastKey=key;learnRows=null;draw();renderLearn(mode==="nauka"?learnRows:null)}
   status();syncUI();requestAnimationFrame(loop)}
