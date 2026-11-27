@@ -37,7 +37,7 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
-        else:
+        elif tid == "of73-2-olowek":
             r = pg.evaluate(OF73)
             s = r["slip"]
             check("OF73 zerwanie tarcia następuje", s is not None)
