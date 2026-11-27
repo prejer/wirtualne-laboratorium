@@ -8,23 +8,23 @@ Uwaga: dla LVIII w przesłanym pliku była tylko treść zadania, bez rozwiązan
 
 | OF | Rok | Temat | Tagi | Symulacja |
 |---|---|---|---|---|
-| LVI | 2006/07 | Diody LED: granica widma i stała Plancka | optyka, dyfrakcja, elektryka, półprzewodniki, fizyka kwantowa | średnia |
+| LVI | 2006/07 | Diody LED: granica widma i stała Plancka | optyka, dyfrakcja, elektryka, półprzewodniki, fizyka kwantowa | gotowe |
 | LVII | 2007/08 | Bateria słoneczna: charakterystyka i sprawność | elektryka, fotowoltaika, promieniowanie, energia | średnia |
 | LVIII | 2008/09 | Gęstość ścieżek CD i DVD | optyka, dyfrakcja | średnia |
-| LIX | 2009/10 | Drgania brzeszczotu | mechanika, drgania, sprężystość | średnia |
+| LIX | 2009/10 | Drgania brzeszczotu | mechanika, drgania, sprężystość | gotowe |
 | LX | 2010/11 | Wytrzymałość drutu na zerwanie | mechanika, statyka, wytrzymałość materiałów | łatwa |
 | LXI | 2011/12 | Pole magnesu: pomiar kontaktronem | elektromagnetyzm, pole magnetyczne | średnia |
 | LXII | 2012/13 | Tarcie papieru o papier | mechanika, tarcie | łatwa |
 | LXIII | 2013/14 | Stosunek momentów magnetycznych magnesów | elektromagnetyzm, dipol magnetyczny, tarcie, energia | łatwa |
 | LXIV | 2014/15 | Współczynnik załamania soczewki Fresnela | optyka, soczewki, odbicie | trudna |
-| LXV | 2015/16 | Tarcie toczne kulki | mechanika, bryła sztywna, tarcie toczne, rzut ukośny | średnia |
+| LXV | 2015/16 | Tarcie toczne kulki | mechanika, bryła sztywna, tarcie toczne, rzut ukośny | gotowe |
 | LXVI | 2016/17 | Bardzo duży opór: wzmacniacz tranzystorowy | elektryka, półprzewodniki, tranzystor | łatwa |
 | LXVII | 2017/18 | Odklejanie taśmy klejącej | mechanika, statyka, dźwignia, adhezja | średnia |
 | LXVIII | 2018/19 | Ciśnienie pary nasyconej roztworu acetonu | termodynamika, gazy, roztwory | trudna |
 | LXIX | 2019/20 | Tłumienie światła w mleku | optyka, rozpraszanie, elektryka, półprzewodniki | średnia |
 | LXX | 2020/21 | Wysokość metacentryczna statku | mechanika, hydrostatyka, pływanie, dźwignia | trudna |
-| LXXI | 2021/22 | Obwód RC: opór i dwie pojemności | elektryka, obwody RC, rozładowanie | łatwa |
-| LXXII | 2022/23 | Kąt Brewstera dla krzemu | optyka, polaryzacja, odbicie | średnia |
+| LXXI | 2021/22 | Obwód RC: opór i dwie pojemności | elektryka, obwody RC, rozładowanie | gotowe |
+| LXXII | 2022/23 | Kąt Brewstera dla krzemu | optyka, polaryzacja, odbicie | gotowe |
 | LXXIII | 2023/24 | Tarcie ołówka o papier | mechanika, statyka, tarcie | gotowe |
 | LXXIV | 2024/25 | Gęstość ziaren soli kuchennej | hydrostatyka, gęstość, roztwory | średnia |
 | LXXV | 2025/26 | Tarcie wstążki o rurkę | mechanika, tarcie, drgania | gotowe |
@@ -36,7 +36,7 @@ Uwaga: dla LVIII w przesłanym pliku była tylko treść zadania, bez rozwiązan
 - **Cel:** Wyznaczyć krótkofalową granicę widma trzech diod (płyta CD jako siatka dyfrakcyjna) i stałą Plancka z napięcia zasilania.
 - **Pomysł z rozwiązania:** siatka dyfrakcyjna (CD) + pomiar napięcia przy zadanym prądzie
 - **Sprzęt:** dioda LED, płyta CD/DVD, linijka, zasilacz regulowany, multimetr (woltomierz/amperomierz), opornik, przewody i zaciski, statyw, taśma klejąca, papier milimetrowy
-- **Tagi:** `optyka`, `dyfrakcja`, `elektryka`, `półprzewodniki`, `fizyka kwantowa` · **symulacja:** średnia
+- **Tagi:** `optyka`, `dyfrakcja`, `elektryka`, `półprzewodniki`, `fizyka kwantowa` · **symulacja:** gotowe
 
 ### LVII OF (2007/08) — Bateria słoneczna: charakterystyka i sprawność
 
@@ -57,7 +57,7 @@ Uwaga: dla LVIII w przesłanym pliku była tylko treść zadania, bez rozwiązan
 - **Cel:** Sprawdzić hipotezę f = A·L^γ dla drgań brzeszczotu zamocowanego jednym końcem i wyznaczyć γ.
 - **Pomysł z rozwiązania:** spinacz odrywa się od brzeszczotu, gdy przyspieszenie przekracza g (amplituda ↔ częstość)
 - **Sprzęt:** brzeszczot, ścisk stolarski, klocek/podkładka, papier milimetrowy, spinacz
-- **Tagi:** `mechanika`, `drgania`, `sprężystość` · **symulacja:** średnia
+- **Tagi:** `mechanika`, `drgania`, `sprężystość` · **symulacja:** gotowe
 
 ### LX OF (2010/11) — Wytrzymałość drutu na zerwanie
 
@@ -99,7 +99,7 @@ Uwaga: dla LVIII w przesłanym pliku była tylko treść zadania, bez rozwiązan
 - **Cel:** Wyznaczyć współczynnik tarcia tocznego kulki o gumę i stosunek I/(mr²).
 - **Pomysł z rozwiązania:** kulka stacza się z równi i spada ze stołu, zasięg rzutu (ślad na kalce) dla różnych nachyleń
 - **Sprzęt:** kulka metalowa, równia/deska, pudełko kartonowe, papier milimetrowy, kalka kopiująca, plastelina, taśma klejąca, nożyczki
-- **Tagi:** `mechanika`, `bryła sztywna`, `tarcie toczne`, `rzut ukośny` · **symulacja:** średnia
+- **Tagi:** `mechanika`, `bryła sztywna`, `tarcie toczne`, `rzut ukośny` · **symulacja:** gotowe
 
 ### LXVI OF (2016/17) — Bardzo duży opór: wzmacniacz tranzystorowy
 
@@ -141,14 +141,14 @@ Uwaga: dla LVIII w przesłanym pliku była tylko treść zadania, bez rozwiązan
 - **Cel:** Wyznaczyć opór i dwie pojemności w zamkniętym obwodzie z trzema wyprowadzeniami.
 - **Pomysł z rozwiązania:** rozładowanie przez opór woltomierza, U(t) wykładnicze, kilka konfiguracji połączeń
 - **Sprzęt:** obwód zamknięty (czarna skrzynka), multimetr (woltomierz/amperomierz), stoper, bateria, przewody i zaciski
-- **Tagi:** `elektryka`, `obwody RC`, `rozładowanie` · **symulacja:** łatwa
+- **Tagi:** `elektryka`, `obwody RC`, `rozładowanie` · **symulacja:** gotowe
 
 ### LXXII OF (2022/23) — Kąt Brewstera dla krzemu
 
 - **Cel:** Wyznaczyć oś polaryzatora i współczynnik załamania krzemu dla światła czerwonego i niebieskiego.
 - **Pomysł z rozwiązania:** wygaszenie światła odbitego polaryzatorem pod kątem Brewstera: n = tg α
 - **Sprzęt:** płytka krzemowa, polaryzator, dioda LED, bateria, przewody i zaciski, papier milimetrowy, taśma klejąca, nożyczki
-- **Tagi:** `optyka`, `polaryzacja`, `odbicie` · **symulacja:** średnia
+- **Tagi:** `optyka`, `polaryzacja`, `odbicie` · **symulacja:** gotowe
 
 ### LXXIII OF (2023/24) — Tarcie ołówka o papier
 

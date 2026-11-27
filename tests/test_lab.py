@@ -50,10 +50,16 @@ for(let d=0;d<3;d++){st.dioda=d;const e=T.diode();let best=0,bx=0;
  for(let x=0.03;x<0.25;x+=0.0005){st.x=x;const m=T.marker(),E=LAB.V(m.x,0,0.35);const g=T.glow(m,E,e.I);if(g){const a=g.a;if(a>best+1e-9){best=a;bx=x}}}
  out.push({d,lam:T.DTR*bx/Math.hypot(bx,st.H)*1e9,lp:[P.lpR,P.lpG,P.lpB][d],kir:e.UR+e.UD-st.U})}st.U=0;return out})()"""
 
+OF72 = r"""(()=>{const T=window.OF72_TEST,st=T.st,P=T.P(),out=[];
+for(const d of[0,1]){st.dioda=d;st.y=0.04;let best=1,bx=0;const pb=-P.beta*Math.PI/180;
+ for(let x=0.1;x<0.21;x+=0.0002){st.x=x;st.psi=pb;const E=LAB.add(T.C0,LAB.mul(T.eyeDir(),0.34)),g=T.glint(E);if(g&&g.through&&g.I<best){best=g.I;bx=x}}
+ st.x=bx;const E=LAB.add(T.C0,LAB.mul(T.eyeDir(),0.34));st.psi=0;const I0=T.glint(E).I;st.psi=pb;out.push({d,tg:bx/0.04,n:d?P.nB:P.nR,Imin:best,I0})}
+st.x=0.09;st.y=0.06;st.dioda=0;st.psi=0;return out})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -64,6 +70,10 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "of72-2-brewster":
+            for r in pg.evaluate(OF72):
+                check(f"OF72 wygaszenie przy tgα = n (dioda {r['d']})", abs(r["tg"] - r["n"]) < 0.02, f"tgα={r['tg']:.3f}, n={r['n']:.3f}")
+                check(f"OF72 polaryzator: wygaszenie tylko przy osi poziomej (dioda {r['d']})", r["Imin"] < 0.01 and r["I0"] > 0.1)
         elif tid == "of56-2-led-cd":
             for r in pg.evaluate(OF56):
                 check(f"OF56 dyfrakcja na CD: d·sinα = λ (dioda {r['d']})", abs(r["lam"] - r["lp"]) < 8, f"λ={r['lam']:.0f} nm, szczyt {r['lp']:.0f} nm")
