@@ -145,7 +145,8 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 #learn .lh{font:700 11px system-ui;letter-spacing:.04em;text-transform:uppercase;color:#7c3aed;margin:2px 0 6px}
 #learn .lr{display:flex;justify-content:space-between;gap:14px;padding:2.5px 0;border-top:1px solid rgba(0,0,0,.05)}#learn .lr span{color:#555}#learn .lr b{font-variant-numeric:tabular-nums}
 .pill.ico{padding:0 9px;display:inline-flex;align-items:center}.pill.ico svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7}
-#ver{position:absolute;right:10px;bottom:6px;font:11px system-ui;color:rgba(27,33,48,.38);z-index:2;pointer-events:none}
+#ver{position:absolute;right:10px;bottom:6px;font:11px system-ui;color:rgba(27,33,48,.38);z-index:4;cursor:pointer;padding:4px}
+#diag{display:none;position:absolute;right:10px;bottom:28px;z-index:6;margin:0;padding:10px 12px;background:rgba(20,24,32,.92);color:#cfe3ff;font:11px/1.45 ui-monospace,monospace;border-radius:10px;max-width:min(520px,calc(100% - 20px));white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -156,7 +157,7 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 <div class="ov" id="taskOv"><div class="box" id="taskBox"></div></div>
 
 <div id="catalog"></div>
-<script src="zadania/index.js"></script>
-<script src="engine.js"></script>
+<script src="zadania/index.js?v=0.8"></script>
+<script src="engine.js?v=0.8"></script>
 </body>
 </html>

@@ -7,11 +7,12 @@ const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 // Utrata kontekstu GPU (na tabletach przy braku pamięci lub restarcie sterownika): czekamy na przywrócenie,
 // a jeśli nie nadchodzi — tworzymy nowe płótno i nowy kontekst. Scena wraca sama, bez odświeżania strony.
 const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
-let glc=null,gl=null,glLost=false,glRetry=0;
-function makeGL(){if(glc)glc.remove();glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
+let glc=null,gl=null,glLost=false,glRetry=0;const GLSTAT={lost:0,remade:0,frames:0,err:""};
+addEventListener("error",e=>{GLSTAT.err=(e.message||"")+" @"+(e.lineno||"")});
+function makeGL(){if(glc){glc.remove();GLSTAT.remade++}glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
  gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getContext("experimental-webgl",GLOPT)||glc.getContext("webgl",{stencil:true})||glc.getContext("webgl");
  glLost=false;if(!gl)return false;
- glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
+ glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
  glc.addEventListener("webglcontextrestored",()=>{clearTimeout(glRetry);initGL();glLost=false;flash("Grafika 3D została odświeżona.")});return true}
 makeGL();
 if(!gl){const m=document.createElement("div");m.id="noGL";m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
@@ -154,7 +155,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
   c.strokeStyle="rgba(200,30,30,.8)";c.beginPath();c.arc(cx+.5,cy+.5,2,0,7);c.stroke();
   c.strokeStyle="#fff";c.lineWidth=3;c.strokeRect(VX+1.5,VY+1.5,VW-3,VH-3);c.fillStyle="rgba(27,33,48,.85)";c.fillRect(VX+6,VY+6,44,18);c.fillStyle="#fff";c.font="600 11px system-ui";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("lupa",VX+12,VY+19)}
  c.restore()}
-function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
+function draw(){GLSTAT.frames++;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
  if(gl&&!glLost&&gl.isContextLost()){glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize())}},1200)}
  if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}

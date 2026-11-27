@@ -27,11 +27,12 @@ const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 // Utrata kontekstu GPU (na tabletach przy braku pamięci lub restarcie sterownika): czekamy na przywrócenie,
 // a jeśli nie nadchodzi — tworzymy nowe płótno i nowy kontekst. Scena wraca sama, bez odświeżania strony.
 const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
-let glc=null,gl=null,glLost=false,glRetry=0;
-function makeGL(){if(glc)glc.remove();glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
+let glc=null,gl=null,glLost=false,glRetry=0;const GLSTAT={lost:0,remade:0,frames:0,err:""};
+addEventListener("error",e=>{GLSTAT.err=(e.message||"")+" @"+(e.lineno||"")});
+function makeGL(){if(glc){glc.remove();GLSTAT.remade++}glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
  gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getContext("experimental-webgl",GLOPT)||glc.getContext("webgl",{stencil:true})||glc.getContext("webgl");
  glLost=false;if(!gl)return false;
- glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
+ glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
  glc.addEventListener("webglcontextrestored",()=>{clearTimeout(glRetry);initGL();glLost=false;flash("Grafika 3D została odświeżona.")});return true}
 makeGL();
 if(!gl){const m=document.createElement("div");m.id="noGL";m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
@@ -174,7 +175,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
   c.strokeStyle="rgba(200,30,30,.8)";c.beginPath();c.arc(cx+.5,cy+.5,2,0,7);c.stroke();
   c.strokeStyle="#fff";c.lineWidth=3;c.strokeRect(VX+1.5,VY+1.5,VW-3,VH-3);c.fillStyle="rgba(27,33,48,.85)";c.fillRect(VX+6,VY+6,44,18);c.fillStyle="#fff";c.font="600 11px system-ui";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("lupa",VX+12,VY+19)}
  c.restore()}
-function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
+function draw(){GLSTAT.frames++;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
  if(gl&&!glLost&&gl.isContextLost()){glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize())}},1200)}
  if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}
@@ -215,7 +216,7 @@ cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
 // --- swobodna kamera: obrót, przesuwanie, przybliżanie do kursora, latanie WASD ---
 function orbitBy(dx,dy){cam.yaw-=dx*0.007;cam.pitch=Math.max(-0.8,Math.min(1.565,cam.pitch+dy*0.007))}
 function panBy(dx,dy){VW=SW;VH=SH;camBasis(cam);const k=cam.dist/CB.F;cam.t=add(cam.t,add(mul(CB.r,-dx*k),mul(CB.up,dy*k)))}
-function zoomAt(x,y,f){VW=SW;VH=SH;camBasis(cam);f=Math.max(0.012/cam.dist,Math.min(8/cam.dist,f));
+function zoomAt(x,y,f){VW=SW;VH=SH;camBasis(cam);f=Math.max(0.03/cam.dist,Math.min(8/cam.dist,f));if(!isFinite(f))return;
  const Pc=add(cam.t,add(mul(CB.r,(x-SW/2)*cam.dist/CB.F),mul(CB.up,-(y-SH/2)*cam.dist/CB.F)));cam.t=add(Pc,mul(sub(cam.t,Pc),f));cam.dist*=f}
 cv.addEventListener("wheel",e=>{e.preventDefault();camAnim=null;hideHint();const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  const dy=e.deltaMode===1?e.deltaY*33:e.deltaY,dx=e.deltaMode===1?e.deltaX*33:e.deltaX;
@@ -238,7 +239,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.7";
+const VERSION="0.8";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -271,7 +272,7 @@ function shellDOM(){const st=$("stage");st.insertAdjacentHTML("beforeend",`
   <tr><td>przedmioty</td><td>złap i przeciągnij · ✋ na pasku pokazuje przedmiot · <kbd>Esc</kbd> odznacza</td></tr></table><button class="btn" id="helpX">OK</button></div>
  <aside id="learn" aria-hidden="true"></aside>
  <div id="dock"><div class="dsec" id="dockMove"></div><div class="dsplit"></div><div class="dsec" id="dockAct"></div></div>
- <div id="hint"></div><div id="status"></div><div id="ver">v${VERSION} · Wirtualne Laboratorium</div>`)}
+ <div id="hint"></div><div id="status"></div><div id="ver" title="Dotknij: diagnostyka">v${VERSION} · Wirtualne Laboratorium</div><pre id="diag"></pre>`)}
 
 // ---------- komunikaty ----------
 let hintEl=null,hintT=0;function showHint(t,ms){hintEl.textContent=t;hintEl.style.opacity=1;clearTimeout(hintT);hintT=setTimeout(hideHint,ms||8000)}function hideHint(){if(hintEl)hintEl.style.opacity=0}
@@ -333,6 +334,13 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  // górny pasek
  const vb=$("views");vb.innerHTML=T.views.map((v,i)=>`<button class="pill" data-v="${i}">${v.label}</button>`).join("");vb.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>goCam(T.views[+b.dataset.v].cam()));
  document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));if(!T.learn)$("modes").style.display="none";
+ // diagnostyka (dotknij numeru wersji): typ grafiki, utraty kontekstu, kamera, ostatni błąd
+ let diagOn=false;$("ver").onclick=()=>{diagOn=!diagOn;$("diag").style.display=diagOn?"block":"none"};
+ setInterval(()=>{if(!diagOn)return;const g=gl,ri=g&&g.getExtension("WEBGL_debug_renderer_info");$("diag").textContent=
+  `grafika: ${g?(typeof WebGL2RenderingContext!=="undefined"&&g instanceof WebGL2RenderingContext?"WebGL2":"WebGL1"):"BRAK"}${g&&g.isContextLost()?" (UTRACONA)":""}\n`+
+  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"}\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · klatki: ${GLSTAT.frames}\n`+
+  `płótno 3D: ${glc?glc.width+"×"+glc.height:"-"} (gdpr ${gdpr})\nkamera: t=(${[cam.t.x,cam.t.y,cam.t.z].map(v=>v.toFixed(3))}) yaw=${cam.yaw.toFixed(2)} pitch=${cam.pitch.toFixed(2)} dist=${cam.dist.toFixed(3)}\n`+
+  `błąd: ${GLSTAT.err||"-"}`},500);
  $("bHelp").onclick=()=>$("help").classList.toggle("on");$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
  const bs=$("bSpeed");bs.onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];bs.textContent=speed===1?"×1":"×¼";bs.classList.toggle("on",speed!==1)};
  $("bZad").onclick=()=>{renderCatalog(window.LAB_TASKS||[]);$("catalog").classList.add("on")};
@@ -371,7 +379,7 @@ function boot(){const tasks=window.LAB_TASKS||[];renderCatalog(tasks);window.add
  const t=route&&tasks.find(t=>t.id===route.id);if(!t){$("catalog").classList.add("on");$("startOv").classList.remove("on");return}
  let z=route.z;if(!z){try{z=localStorage.getItem("lab-lastseed-"+t.id)}catch(e){}}if(!z)z=String(1000+Math.floor(Math.random()*899000));seed=+z;noiseR=rng(seed*7+3);
  try{localStorage.setItem("lab-lastseed-"+t.id,z)}catch(e){}if(location.hash!=="#"+t.id+"/"+z)history.replaceState(null,"","#"+t.id+"/"+z);
- const s=document.createElement("script");s.src=t.file;document.body.appendChild(s)}
+ const s=document.createElement("script");s.src=t.file+"?v="+VERSION;document.body.appendChild(s)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else setTimeout(boot,0);
 
 return{_draw:()=>draw(),_grabs:()=>grabList(),defineTask,params,screenOf,V,add,sub,mul,dot,cross,len,nrm,lerp,Z,goCam,flash,showHint,hideHint,viz,fmt,num,esc,gauss,get seed(){return seed},get P(){return P},VERSION};

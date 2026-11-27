@@ -10,5 +10,5 @@ function boot(){const tasks=window.LAB_TASKS||[];renderCatalog(tasks);window.add
  const t=route&&tasks.find(t=>t.id===route.id);if(!t){$("catalog").classList.add("on");$("startOv").classList.remove("on");return}
  let z=route.z;if(!z){try{z=localStorage.getItem("lab-lastseed-"+t.id)}catch(e){}}if(!z)z=String(1000+Math.floor(Math.random()*899000));seed=+z;noiseR=rng(seed*7+3);
  try{localStorage.setItem("lab-lastseed-"+t.id,z)}catch(e){}if(location.hash!=="#"+t.id+"/"+z)history.replaceState(null,"","#"+t.id+"/"+z);
- const s=document.createElement("script");s.src=t.file;document.body.appendChild(s)}
+ const s=document.createElement("script");s.src=t.file+"?v="+VERSION;document.body.appendChild(s)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else setTimeout(boot,0);

@@ -29,7 +29,7 @@ cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
 // --- swobodna kamera: obrót, przesuwanie, przybliżanie do kursora, latanie WASD ---
 function orbitBy(dx,dy){cam.yaw-=dx*0.007;cam.pitch=Math.max(-0.8,Math.min(1.565,cam.pitch+dy*0.007))}
 function panBy(dx,dy){VW=SW;VH=SH;camBasis(cam);const k=cam.dist/CB.F;cam.t=add(cam.t,add(mul(CB.r,-dx*k),mul(CB.up,dy*k)))}
-function zoomAt(x,y,f){VW=SW;VH=SH;camBasis(cam);f=Math.max(0.012/cam.dist,Math.min(8/cam.dist,f));
+function zoomAt(x,y,f){VW=SW;VH=SH;camBasis(cam);f=Math.max(0.03/cam.dist,Math.min(8/cam.dist,f));if(!isFinite(f))return;
  const Pc=add(cam.t,add(mul(CB.r,(x-SW/2)*cam.dist/CB.F),mul(CB.up,-(y-SH/2)*cam.dist/CB.F)));cam.t=add(Pc,mul(sub(cam.t,Pc),f));cam.dist*=f}
 cv.addEventListener("wheel",e=>{e.preventDefault();camAnim=null;hideHint();const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  const dy=e.deltaMode===1?e.deltaY*33:e.deltaY,dx=e.deltaMode===1?e.deltaX*33:e.deltaX;
