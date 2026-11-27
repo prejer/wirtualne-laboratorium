@@ -262,7 +262,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.22";
+const VERSION="0.23";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -397,13 +397,40 @@ const viz={
  line(c,D,a,b,col,dash){const A=D.P2(a),B=D.P2(b);if(!A||!B)return;c.save();c.strokeStyle=col;c.lineWidth=1.3;if(dash)c.setLineDash([4,4]);c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.stroke();c.restore()},
  panel(c,rows){learnRows=rows}};
 
-// ---------- katalog zadań ----------
+// ---------- strona główna (katalog doświadczeń) ----------
+const KONTAKT="";   // adres e-mail do ofert dla szkół i korepetytorów — puste: przycisk pokazuje „wkrótce”
+const DZIALY=["mechanika","drgania","optyka","elektryczność"];
 function progressOf(id){let z=null;try{z=localStorage.getItem("lab-lastseed-"+id)}catch(e){}if(!z)return null;let st=null;try{st=localStorage.getItem("lab-"+id+"-"+z+"-state")}catch(e){}return st?{}:null}
-function renderCatalog(tasks){const c=$("catalog");const cur=route&&route.id;
- c.innerHTML=`<div class="cat"><div class="cathead"><div><div class="kick">Wirtualne Laboratorium · Olimpiada Fizyczna</div><h1>Zadania doświadczalne w 3D</h1><p>Gotowy układ z rozwiązania Komitetu. Obracasz go i mierzysz jak w prawdziwym laboratorium. W trybie Nauka widzisz siły, kąty i odległości. Układ poczeka, aż wrócisz.</p></div>${cur?'<button class="btn" id="catX">Zamknij ✕</button>':""}</div>
- <div class="cards">${tasks.map(t=>{const p=progressOf(t.id);return`<button class="tcard" data-id="${t.id}"><div class="tsvg">${t.svg||""}</div><div class="tbody"><div class="kick">${t.kicker}</div><b>${t.title}</b><span>${t.desc}</span><div class="tags">${(t.tags||[]).map(g=>`<i>${g}</i>`).join("")}${p?`<i class="prog">w toku</i>`:""}</div></div></button>`}).join("")}
- <div class="tcard soon"><div class="tbody"><b>Kolejne zadania</b><span>Wrzucaj PDF-y z zadaniami i rozwiązaniami — każde staje się kolejnym stanowiskiem.</span></div></div></div></div>`;
- c.querySelectorAll(".tcard[data-id]").forEach(b=>b.onclick=()=>{if(cur===b.dataset.id){c.classList.remove("on");return}location.hash="#"+b.dataset.id});
+const grupaOf=t=>t.id.startsWith("lo-")?"lo":"of";
+function edycja(t){return(t.kicker||"").replace(/ · /g,", ")}
+function card(t){const p=progressOf(t.id),g=grupaOf(t);
+ return`<button class="lcard ${g}" data-id="${t.id}" data-dz="${(t.dzial||[]).join(" ")}"><span class="limg"><img src="img/zadania/${t.id}.jpg?v=${VERSION}" alt="" loading="lazy"></span>
+  <span class="lmeta">${esc(edycja(t))}</span><span class="ltitle">${esc(t.title)}</span><span class="ldesc">${esc(t.desc)}</span>
+  <span class="ldz">${(t.dzial||[]).map(d=>`<i>${d}</i>`).join("")}${p?`<i class="prog">zaczęte</i>`:""}</span></button>`}
+function renderCatalog(tasks){const c=$("catalog");const cur=route&&tasks.some(t=>t.id===route.id)?route.id:null;const of=tasks.filter(t=>grupaOf(t)==="of"),lo=tasks.filter(t=>grupaOf(t)==="lo");
+ c.innerHTML=`<div class="land">
+ <nav class="lnav"><a class="brand" href="#"><img src="icons/icon-192.png" alt=""><span>Wirtualne Laboratorium</span></a>
+  <span class="lnavl"><a href="#sek-of" data-scroll>Olimpiada</a><a href="#sek-lo" data-scroll>Matura</a><a href="#sek-b2b" data-scroll>Dla szkół</a>${cur?'<button class="lbtn ghost" id="catX">Wróć do doświadczenia</button>':""}</span></nav>
+ <header class="hero"><div class="htxt"><h1>Doświadczenia z fizyki, w których mierzysz sam</h1>
+  <p>Zadania doświadczalne z Olimpiady Fizycznej i doświadczenia z podstawy programowej — w 3D, z prawdziwymi przyrządami. Linijka, stoper i multimetr pokazują to, co pokazałyby na stole. Wynik zależy od Twojego pomiaru.</p>
+  <div class="hcta"><button class="lbtn" data-go="${(of[0]||tasks[0]).id}">Otwórz doświadczenie z płytą CD</button><a class="lbtn ghost" href="#sek-of" data-scroll>Zobacz wszystkie</a></div></div>
+  <figure class="hfig"><img src="img/hero.jpg?v=${VERSION}" alt="Zasilacz, amperomierz, płytka stykowa ze świecącą żarówką i woltomierz na stole"><figcaption><span class="lcd">6,00 V</span><span class="lcd">153,4 mA</span><span class="cap">Żarówka 6 V: opór włókna rośnie z temperaturą — z 4 Ω na zimno do 38 Ω przy pełnym świeceniu.</span></figcaption></figure></header>
+ <section class="feat"><div><h3>Mierzysz sam</h3><p>Aplikacja nie podaje wyniku. Odczytujesz skalę, liczysz wahnięcia, przekładasz przewody — jak w pracowni.</p></div>
+  <div><h3>Tryb Nauka</h3><p>Jednym przełącznikiem widać siły, promienie, energię i ukryte wartości układu. Pomiar i nauka są osobno.</p></div>
+  <div><h3>Każdy zestaw inny</h3><p>Parametry są losowane jak w prawdziwym zestawie. Kod zestawu jest w adresie strony — można go wysłać nauczycielowi.</p></div></section>
+ <div class="filt" role="group" aria-label="Dział fizyki"><button class="on" data-f="">Wszystkie działy</button>${DZIALY.map(d=>`<button data-f="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("")}</div>
+ <section class="sek" id="sek-of"><div class="sekh"><h2>Olimpiada Fizyczna</h2><p>Zadania doświadczalne II etapu. Układ odtworzony według rozwiązań Komitetu Głównego: ten sam sprzęt, ta sama fizyka, te same pułapki.</p></div>
+  <div class="lgrid">${of.map(card).join("")}</div></section>
+ <section class="sek" id="sek-lo"><div class="sekh"><h2>Matura rozszerzona</h2><p>Doświadczenia wymagane w podstawie programowej z fizyki (2024). Do nauki przed maturą i do pokazania na lekcji, gdy w szkole brakuje sprzętu.</p></div>
+  <div class="lgrid">${lo.map(card).join("")}</div></section>
+ <section class="b2b" id="sek-b2b"><div><h2>Dla szkół i korepetytorów</h2><p>Stanowiska działają w przeglądarce na zwykłym komputerze — bez zakupu sprzętu i bez instalacji. Przygotowujemy licencje dla szkół, firm korepetytorskich i nauczycieli prowadzących kółka olimpijskie.</p></div>
+  ${KONTAKT?`<a class="lbtn" href="mailto:${KONTAKT}?subject=Wirtualne%20Laboratorium%20%E2%80%94%20licencja">Napisz do nas</a>`:`<span class="lbtn off" aria-disabled="true">Formularz kontaktowy wkrótce</span>`}</section>
+ <footer class="lfoot"><p>Zadania olimpijskie opracowane na podstawie materiałów Komitetu Głównego Olimpiady Fizycznej. Podstawa programowa z fizyki, zakres rozszerzony (2024).</p><p>Wersja ${VERSION}</p></footer></div>`;
+ c.querySelectorAll(".lcard[data-id],[data-go]").forEach(b=>b.onclick=()=>{const id=b.dataset.id||b.dataset.go;if(cur===id){c.classList.remove("on");return}location.hash="#"+id});
+ c.querySelectorAll("[data-scroll]").forEach(a=>a.onclick=e=>{e.preventDefault();const el=c.querySelector(a.getAttribute("href"));if(el)el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})});
+ c.querySelector(".brand").onclick=e=>{e.preventDefault();c.scrollTo({top:0})};
+ c.querySelectorAll(".filt button").forEach(b=>b.onclick=()=>{c.querySelectorAll(".filt button").forEach(x=>x.classList.toggle("on",x===b));const f=b.dataset.f;
+  c.querySelectorAll(".lcard").forEach(k=>k.hidden=!!f&&!k.dataset.dz.split(" ").includes(f));c.querySelectorAll(".sek").forEach(s=>s.hidden=![...s.querySelectorAll(".lcard")].some(k=>!k.hidden))});
  const x=$("catX");if(x)x.onclick=()=>c.classList.remove("on")}
 function boot(){const tasks=window.LAB_TASKS||[];renderCatalog(tasks);window.addEventListener("hashchange",()=>location.reload());
  const t=route&&tasks.find(t=>t.id===route.id);if(!t){$("catalog").classList.add("on");$("startOv").classList.remove("on");return}
