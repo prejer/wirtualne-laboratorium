@@ -30,8 +30,9 @@ const sprzet={
  // Kartka (biała), leżąca poziomo: prostokąt [x0,x1]×[y0,y1] na wysokości z.
  kartka({x0,x1,y0,y1,z=0,kolor="#fbfbf7",warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],kolor,warstwa);stripNow(V(x0,y0,z),V(x1,y0,z),0.0006,"rgba(0,0,0,.10)",warstwa+1)},
  // Papier milimetrowy: siatka 1 mm / 5 mm / 10 mm, tekstura powtarzana co 1 cm. Leży płasko na wysokości z (warstwa jak kartka).
- papierMm({x0,x1,y0,y1,z=0,warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],"#fdfcf6",warstwa);
-  texQuadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],[0,0,(x1-x0)/0.01,0,(x1-x0)/0.01,(y1-y0)/0.01,0,(y1-y0)/0.01],"papierMm",512,(g,S)=>{
+ papierMm({x0,x1,y0,y1,z=0,warstwa=1}={}){sprzet.papierMmNa([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],x1-x0,y1-y0,warstwa)},
+ // Papier milimetrowy na dowolnym czworokącie (np. pasek przyklejony do deski): pts w kolejności obwodu, szer/wys w metrach.
+ papierMmNa(pts,szer,wys,warstwa=1){quadNow(pts,"#fdfcf6",warstwa);texQuadNow(pts,[0,0,szer/0.01,0,szer/0.01,wys/0.01,0,wys/0.01],"papierMm",512,(g,S)=>{
    g.clearRect(0,0,S,S);const pm=S/10;for(let i=0;i<10;i++){g.fillStyle=i===0?"rgba(214,120,60,.85)":i===5?"rgba(214,120,60,.6)":"rgba(214,120,60,.32)";const w=i===0?4:i===5?2.5:1.5;
     g.fillRect(i*pm-w/2,0,w,S);g.fillRect(0,i*pm-w/2,S,w)}g.fillRect(S-2,0,2,S);g.fillRect(0,S-2,S,2)})},
  // Plastelina: spłaszczona bryłka.

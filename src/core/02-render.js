@@ -57,6 +57,9 @@ function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab)
  if(o.caps!==false){if(r0>0.0005)face(ring(0,r0).reverse(),mul(u,-1),o.capCol||col,o);if(r1>0.0005)face(ring(1,r1),u,o.capCol||col,o)}}
 function box(c,ax,ay,az,col,o){const P=(i,j,k)=>add(c,add(mul(ax,i),add(mul(ay,j),mul(az,k))));const F=[[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1],ax],[[-1,1,-1],[-1,-1,-1],[-1,-1,1],[-1,1,1],mul(ax,-1)],[[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1],ay],[[1,-1,-1],[-1,-1,-1],[-1,-1,1],[1,-1,1],mul(ay,-1)],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],az],[[-1,1,-1],[1,1,-1],[1,-1,-1],[-1,-1,-1],mul(az,-1)]];
  F.forEach((f,i)=>face(f.slice(0,4).map(q=>P(...q)),nrm(f[4]),(o&&o.cols&&o.cols[i])||col,o))}
+function sphere(c,r,col,o){o=o||{};const nl=o.nl||12,nm=o.n||22,P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
+ for(let i=0;i<nl;i++)for(let j=0;j<nm;j++){const a=P(i,j),b=P(i,j+1),d=P(i+1,j+1),e=P(i+1,j);const pts=i===0?[a,d,e]:i===nl-1?[a,b,d]:[a,b,d,e];
+  const m=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);face(pts,nrm(sub(m,c)),col,o)}}
 function band(path,w,width,col,o){o=Object.assign({two:true},o||{});for(let i=0;i<path.length-1;i++){const a=path[i],b=path[i+1];const hw=mul(w,width/2);const n=nrm(cross(sub(b,a),w));if(len(n)<1e-9)continue;face([sub(a,hw),add(a,hw),add(b,hw),sub(b,hw)],n,col,o)}}
 
 // ---------- taśma / linijka z podziałką (tekstura w kafelkach po 5 cm, ostra przy dużym przybliżeniu) ----------
@@ -115,7 +118,7 @@ function shadowData(area){if(!area)return[];let A=area;{const s=(A[1].x-A[0].x)*
   const ar=(q[1].x-q[0].x)*(q[2].y-q[0].y)-(q[1].y-q[0].y)*(q[2].x-q[0].x);if(Math.abs(ar)<1e-12&&q.length===3)continue;if(ar<0)q=q.reverse();q=clip2(q,A);if(q.length<3)continue;pushPoly(out,q.map(p=>V(p.x,p.y,0.00035)),c)}return out}
 
 const D={ // API rysowania dla zadania
- cyl,box,band,face,solid:fn=>fn(),flush:()=>{},shadowsNow:()=>{},
+ cyl,box,sphere,band,face,solid:fn=>fn(),flush:()=>{},shadowsNow:()=>{},
  faceNow:(pts,n,col,o)=>face(pts,n,col,Object.assign({shadow:false},o||{})),
  get grabbing(){return grab},
  line:(a,b,w,col)=>line(a,b,w,col),

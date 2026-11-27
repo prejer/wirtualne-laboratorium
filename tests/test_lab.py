@@ -30,10 +30,16 @@ ELEK = r"""(()=>{const T=window.ELEK_TEST,st=T.st,P=T.P();st.podl=true;st.spalon
  st.zakres=3;for(let i=0;i<30;i++)T.update(0.02);const m20=st.odczyt;st.zakres=2;for(let i=0;i<30;i++)T.update(0.02);const m2=st.odczyt;st.zakres=3;
  return{safe,I5,UD,kir,I15,cc,Icc,Ucc,burnt,Iafter,m20,m2,emf:P.emf}})()"""
 
+OF65 = r"""(()=>{const T=window.OF65_TEST,st=T.st,P=T.P(),g=9.81;const out=[];
+for(const dz of[0.01,0.03,0.05]){st.dz=dz;st.s=0.33;st.marks=[];st.kalka=true;st.papX=0.0;let sum=0,n=0;
+ for(let k=0;k<6;k++){T.take();T.release();for(let i=0;i<40000&&T.B()&&T.B().ph!=="stop";i++)T.step(0.0005);const m=st.marks[st.marks.length-1];if(m){sum+=m.x-T.geo().topEnd.x;n++}}
+ const G=T.geo(),R=T.r(),al=G.al,h=G.topEnd.z,a=g*(Math.sin(al)-(P.k/R)*Math.cos(al))/(1+P.beta),v2=2*a*0.33,A=g/(2*v2*Math.cos(al)**2),Bq=Math.tan(al);
+ out.push({tg:Bq,d:sum/n,pred:(-Bq+Math.sqrt(Bq*Bq+4*A*h))/(2*A)})}return out})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -44,6 +50,9 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "of65-2-kulka":
+            for r in pg.evaluate(OF65):
+                check(f"OF65 zasięg d = wzór Komitetu (tgα={r['tg']:.3f})", abs(r["d"] - r["pred"]) < 0.004 + 0.03 * r["pred"], f"d={r['d']*1000:.1f} wzór={r['pred']*1000:.1f} mm")
         elif tid == "plac-elektronika":
             r = pg.evaluate(ELEK)
             check("LED: U = I·R + U_D (Kirchhoff)", abs(r["kir"]) < 1e-6, f"I={r['I5']*1000:.2f} mA przy 5 V, U_D={r['UD']:.3f} V")

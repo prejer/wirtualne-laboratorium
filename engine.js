@@ -77,6 +77,9 @@ function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab)
  if(o.caps!==false){if(r0>0.0005)face(ring(0,r0).reverse(),mul(u,-1),o.capCol||col,o);if(r1>0.0005)face(ring(1,r1),u,o.capCol||col,o)}}
 function box(c,ax,ay,az,col,o){const P=(i,j,k)=>add(c,add(mul(ax,i),add(mul(ay,j),mul(az,k))));const F=[[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1],ax],[[-1,1,-1],[-1,-1,-1],[-1,-1,1],[-1,1,1],mul(ax,-1)],[[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1],ay],[[1,-1,-1],[-1,-1,-1],[-1,-1,1],[1,-1,1],mul(ay,-1)],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],az],[[-1,1,-1],[1,1,-1],[1,-1,-1],[-1,-1,-1],mul(az,-1)]];
  F.forEach((f,i)=>face(f.slice(0,4).map(q=>P(...q)),nrm(f[4]),(o&&o.cols&&o.cols[i])||col,o))}
+function sphere(c,r,col,o){o=o||{};const nl=o.nl||12,nm=o.n||22,P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
+ for(let i=0;i<nl;i++)for(let j=0;j<nm;j++){const a=P(i,j),b=P(i,j+1),d=P(i+1,j+1),e=P(i+1,j);const pts=i===0?[a,d,e]:i===nl-1?[a,b,d]:[a,b,d,e];
+  const m=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);face(pts,nrm(sub(m,c)),col,o)}}
 function band(path,w,width,col,o){o=Object.assign({two:true},o||{});for(let i=0;i<path.length-1;i++){const a=path[i],b=path[i+1];const hw=mul(w,width/2);const n=nrm(cross(sub(b,a),w));if(len(n)<1e-9)continue;face([sub(a,hw),add(a,hw),add(b,hw),sub(b,hw)],n,col,o)}}
 
 // ---------- taśma / linijka z podziałką (tekstura w kafelkach po 5 cm, ostra przy dużym przybliżeniu) ----------
@@ -135,7 +138,7 @@ function shadowData(area){if(!area)return[];let A=area;{const s=(A[1].x-A[0].x)*
   const ar=(q[1].x-q[0].x)*(q[2].y-q[0].y)-(q[1].y-q[0].y)*(q[2].x-q[0].x);if(Math.abs(ar)<1e-12&&q.length===3)continue;if(ar<0)q=q.reverse();q=clip2(q,A);if(q.length<3)continue;pushPoly(out,q.map(p=>V(p.x,p.y,0.00035)),c)}return out}
 
 const D={ // API rysowania dla zadania
- cyl,box,band,face,solid:fn=>fn(),flush:()=>{},shadowsNow:()=>{},
+ cyl,box,sphere,band,face,solid:fn=>fn(),flush:()=>{},shadowsNow:()=>{},
  faceNow:(pts,n,col,o)=>face(pts,n,col,Object.assign({shadow:false},o||{})),
  get grabbing(){return grab},
  line:(a,b,w,col)=>line(a,b,w,col),
@@ -255,7 +258,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.14";
+const VERSION="0.15";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -457,8 +460,9 @@ const sprzet={
  // Kartka (biała), leżąca poziomo: prostokąt [x0,x1]×[y0,y1] na wysokości z.
  kartka({x0,x1,y0,y1,z=0,kolor="#fbfbf7",warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],kolor,warstwa);stripNow(V(x0,y0,z),V(x1,y0,z),0.0006,"rgba(0,0,0,.10)",warstwa+1)},
  // Papier milimetrowy: siatka 1 mm / 5 mm / 10 mm, tekstura powtarzana co 1 cm. Leży płasko na wysokości z (warstwa jak kartka).
- papierMm({x0,x1,y0,y1,z=0,warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],"#fdfcf6",warstwa);
-  texQuadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],[0,0,(x1-x0)/0.01,0,(x1-x0)/0.01,(y1-y0)/0.01,0,(y1-y0)/0.01],"papierMm",512,(g,S)=>{
+ papierMm({x0,x1,y0,y1,z=0,warstwa=1}={}){sprzet.papierMmNa([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],x1-x0,y1-y0,warstwa)},
+ // Papier milimetrowy na dowolnym czworokącie (np. pasek przyklejony do deski): pts w kolejności obwodu, szer/wys w metrach.
+ papierMmNa(pts,szer,wys,warstwa=1){quadNow(pts,"#fdfcf6",warstwa);texQuadNow(pts,[0,0,szer/0.01,0,szer/0.01,wys/0.01,0,wys/0.01],"papierMm",512,(g,S)=>{
    g.clearRect(0,0,S,S);const pm=S/10;for(let i=0;i<10;i++){g.fillStyle=i===0?"rgba(214,120,60,.85)":i===5?"rgba(214,120,60,.6)":"rgba(214,120,60,.32)";const w=i===0?4:i===5?2.5:1.5;
     g.fillRect(i*pm-w/2,0,w,S);g.fillRect(0,i*pm-w/2,S,w)}g.fillRect(S-2,0,2,S);g.fillRect(0,S-2,S,2)})},
  // Plastelina: spłaszczona bryłka.
