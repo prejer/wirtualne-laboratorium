@@ -6,7 +6,8 @@ const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 // WebGL2, a gdy niedostępny (np. przeglądarki wbudowane w aplikacje, stare GPU) — WebGL1; shadery w GLSL ES 1.00 działają w obu.
 // Utrata kontekstu GPU (na tabletach przy braku pamięci lub restarcie sterownika): czekamy na przywrócenie,
 // a jeśli nie nadchodzi — tworzymy nowe płótno i nowy kontekst. Scena wraca sama, bez odświeżania strony.
-const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
+let LQ=false;try{LQ=localStorage.getItem("lab-quality")==="low"}catch(e){}   // lżejsza grafika: mniej pikseli, bez wygładzania i cieni, mniejsze tekstury
+const GLOPT={antialias:!LQ,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
 let glc=null,gl=null,glLost=false,glRetry=0;const GLSTAT={lost:0,remade:0,frames:0,err:""};
 addEventListener("error",e=>{GLSTAT.err=(e.message||"")+" @"+(e.lineno||"")});
 const getCtx=c=>c.getContext("webgl2",GLOPT)||c.getContext("webgl",GLOPT)||c.getContext("experimental-webgl",GLOPT)||c.getContext("webgl",{stencil:true})||c.getContext("webgl");
@@ -22,7 +23,7 @@ if(!gl){const m=document.createElement("div");m.id="noGL";m.style.cssText="posit
 const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;
 let VW,VH,VX,VY,CB,isPip=false;
 // gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
-let gdpr=1;function resize(){if(!glc)return;forceRedraw();const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
+let gdpr=1;function resize(){if(!glc)return;forceRedraw();const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=LQ?Math.min(dpr,1):Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
  cv.width=Math.round(SW*dpr);cv.height=Math.round(SH*dpr);glc.width=Math.round(SW*gdpr);glc.height=Math.round(SH*gdpr)}
 function camBasis(c){const cp=Math.cos(c.pitch);const pos=add(c.t,V(c.dist*cp*Math.sin(c.yaw),-c.dist*cp*Math.cos(c.yaw),c.dist*Math.sin(c.pitch)));
  const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5};NEAR=Math.max(0.004,Math.min(0.06,c.dist*0.12,(pos.z-(T.table?.floor??-0.76))*0.5));FAR=Math.max(6,c.dist*12)}
@@ -51,20 +52,20 @@ function lineNow(a,b,w,col){line(a,b,w,col)}
 // pasek leżący płasko na płaszczyźnie poziomej
 function stripNow(a,b,w,col,layer){const d=nrm(sub(b,a)),n=mul(nrm(V(-d.y,d.x,0)),w/2);quadNow([sub(a,n),sub(b,n),add(b,n),add(a,n)],col,layer)}
 function frame3(u){const e1=nrm(cross(u,Math.abs(u.z)<0.9?Z:V(1,0,0)));return[e1,cross(u,e1)]}
-function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab),u=mul(ab,1/L);const[e1,e2]=frame3(u);const n=o.n||14,ns=Math.max(1,Math.ceil(L/(o.seg||0.06)));
+function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab),u=mul(ab,1/L);const[e1,e2]=frame3(u);const n=LQ?Math.max(5,Math.round((o.n||14)*0.6)):(o.n||14),ns=Math.max(1,Math.ceil(L/(o.seg||0.06)));
  const ring=(t,r)=>{const c=add(a,mul(ab,t));return Array.from({length:n},(_,i)=>{const th=(i+(o.rot||0))*2*Math.PI/n;return add(c,add(mul(e1,r*Math.cos(th)),mul(e2,r*Math.sin(th))))})};
  const slope=(r0-r1)/L;let prev=ring(0,r0);for(let k=1;k<=ns;k++){const t=k/ns,cur=ring(t,r0+(r1-r0)*t);for(let i=0;i<n;i++){const j=(i+1)%n;const th=(i+0.5+(o.rot||0))*2*Math.PI/n;const nn=nrm(add(add(mul(e1,Math.cos(th)),mul(e2,Math.sin(th))),mul(u,slope)));face([prev[i],prev[j],cur[j],cur[i]],nn,col,o)}prev=cur}
  if(o.caps!==false){if(r0>0.0005)face(ring(0,r0).reverse(),mul(u,-1),o.capCol||col,o);if(r1>0.0005)face(ring(1,r1),u,o.capCol||col,o)}}
 function box(c,ax,ay,az,col,o){const P=(i,j,k)=>add(c,add(mul(ax,i),add(mul(ay,j),mul(az,k))));const F=[[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1],ax],[[-1,1,-1],[-1,-1,-1],[-1,-1,1],[-1,1,1],mul(ax,-1)],[[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1],ay],[[1,-1,-1],[-1,-1,-1],[-1,-1,1],[1,-1,1],mul(ay,-1)],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],az],[[-1,1,-1],[1,1,-1],[1,-1,-1],[-1,-1,-1],mul(az,-1)]];
  F.forEach((f,i)=>face(f.slice(0,4).map(q=>P(...q)),nrm(f[4]),(o&&o.cols&&o.cols[i])||col,o))}
-function sphere(c,r,col,o){o=o||{};const nl=o.nl||12,nm=o.n||22,P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
+function sphere(c,r,col,o){o=o||{};const nl=LQ?8:(o.nl||12),nm=LQ?14:(o.n||22),P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
  for(let i=0;i<nl;i++)for(let j=0;j<nm;j++){const a=P(i,j),b=P(i,j+1),d=P(i+1,j+1),e=P(i+1,j);const pts=i===0?[a,d,e]:i===nl-1?[a,b,d]:[a,b,d,e];
   const m=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);face(pts,nrm(sub(m,c)),col,o)}}
 function band(path,w,width,col,o){o=Object.assign({two:true},o||{});for(let i=0;i<path.length-1;i++){const a=path[i],b=path[i+1];const hw=mul(w,width/2);const n=nrm(cross(sub(b,a),w));if(len(n)<1e-9)continue;face([sub(a,hw),add(a,hw),add(b,hw),sub(b,hw)],n,col,o)}}
 
 // ---------- taśma / linijka z podziałką (tekstura w kafelkach po 5 cm, ostra przy dużym przybliżeniu) ----------
 // o: początek (0 cm), d: kierunek wzdłuż, w: w poprzek (od krawędzi z podziałką w głąb), L, W: długość i szerokość [m]
-const TILE=0.05,TPX=512,texCache=new Map();const pow2=n=>2**Math.ceil(Math.log2(n));
+const TILE=0.05,TPX=LQ?256:512,texCache=new Map();const pow2=n=>2**Math.ceil(Math.log2(n));
 function tapeTile(W,i,o,mir){const key=W+"|"+i+"|"+(o.labelUp||"edge")+"|"+mir;let t=texCache.get(key);if(t)return t;
  const h=pow2(Math.max(64,Math.round(TPX*W/TILE))),c=document.createElement("canvas");c.width=TPX;c.height=h;const g=c.getContext("2d");const pm=TPX/(TILE*1000),pv=h/(W*1000); // px na mm wzdłuż i w poprzek (tekstury 2^n — wymóg WebGL1)
  g.clearRect(0,0,TPX,h);g.strokeStyle="#1d1d1d";g.fillStyle="#1d1d1d";const mm0=Math.round(i*TILE*1000);
@@ -81,7 +82,7 @@ function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;c
 
 // tekstura powtarzalna (np. siatka papieru milimetrowego): rysowana raz na płótnie 2^n×2^n, potem kafelkowana
 const dynKeys=[];   // tekstury zmienne (wyświetlacze): trzymamy tylko ostatnie
-function repTex(key,size,paint){let t=texCache.get(key);if(t)return t;
+function repTex(key,size,paint){if(LQ&&size>64)size/=2;let t=texCache.get(key);if(t)return t;
  if(key.startsWith("dyn:")){dynKeys.push(key);if(dynKeys.length>40){const k=dynKeys.shift(),o=texCache.get(k);if(o){gl.deleteTexture(o);texCache.delete(k)}}}const c=document.createElement("canvas");c.width=c.height=size;paint(c.getContext("2d"),size);
  const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
@@ -162,7 +163,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
    gl.disable(gl.POLYGON_OFFSET_FILL);gl.disable(gl.BLEND);gl.depthMask(true)}                // 1b) płaskie warstwy leżące na powierzchni (kartki, ślady) — kolejność warstw, bez migotania
   gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
   gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1,-14);
-  gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.EQUAL,0,0xff);gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);drawColor(shadowData(T.shadowArea),M);gl.disable(gl.STENCIL_TEST); // 2) cienie
+  gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.EQUAL,0,0xff);gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);if(!LQ)drawColor(shadowData(T.shadowArea),M);gl.disable(gl.STENCIL_TEST); // 2) cienie
   gl.disable(gl.POLYGON_OFFSET_FILL);const tr=[];TR.sort((a,b)=>b.z-a.z).forEach(t=>pushPoly(tr,t.pts,t.c));drawColor(tr,M);   // 3) półprzezroczyste (od najdalszych)
   gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-18);drawTapes(M);gl.disable(gl.POLYGON_OFFSET_FILL);                      // 4) podziałki taśm i linijek
   gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.SCISSOR_TEST)}

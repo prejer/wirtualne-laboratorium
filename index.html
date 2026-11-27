@@ -177,17 +177,17 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 <div id="gate"><div class="gbox"><img src="icons/icon-192.png" alt=""><h1>Wirtualne Laboratorium działa na razie na komputerach</h1>
 <p>Otwórz je na laptopie lub komputerze stacjonarnym — w Chrome, Edge, Firefoksie albo Safari.</p>
 <p class="soon">Wersja na telefony i tablety — <b>wkrótce</b>.</p>
-<a href="#" id="gateTry">Spróbuj mimo to (wersja testowa)</a></div></div>
+<a href="#" id="gateTryLow">Spróbuj mimo to — lżejsza grafika (zalecane)</a><br><a href="#" id="gateTry">Spróbuj mimo to — pełna jakość</a></div></div>
 <script>
 // Na razie tylko komputery: na tabletach i telefonach przeglądarki odbierają grafikę 3D (wersja mobilna w przygotowaniu).
 (function(){var ua=navigator.userAgent,mm=function(q){return window.matchMedia&&matchMedia(q).matches};
  var mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)||(mm("(pointer:coarse)")&&!mm("(any-pointer:fine)"));
  var ok=false;try{ok=localStorage.getItem("lab-mobile-ok")==="1"}catch(e){}
  window.LAB_MOBILE=mobile;
- function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.19";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.19";document.body.appendChild(b)};document.body.appendChild(a)}
+ function load(){document.getElementById("gate").remove();var a=document.createElement("script");a.src="zadania/index.js?v=0.20";a.onload=function(){var b=document.createElement("script");b.src="engine.js?v=0.20";document.body.appendChild(b)};document.body.appendChild(a)}
  if(!mobile||ok){load();return}
  document.getElementById("gate").classList.add("on");
- document.getElementById("gateTry").onclick=function(e){e.preventDefault();try{localStorage.setItem("lab-mobile-ok","1")}catch(_){}load()}})();
+ function go(q){return function(e){e.preventDefault();try{localStorage.setItem("lab-mobile-ok","1");localStorage.setItem("lab-quality",q)}catch(_){}load()}}document.getElementById("gateTry").onclick=go("full");document.getElementById("gateTryLow").onclick=go("low")})();
 </script>
 </body>
 </html>

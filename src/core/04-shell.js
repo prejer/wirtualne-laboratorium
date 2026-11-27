@@ -2,7 +2,7 @@
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.19";
+const VERSION="0.20";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -32,7 +32,7 @@ function shellDOM(){const st=$("stage");st.insertAdjacentHTML("beforeend",`
   <tr><td>przybliżanie</td><td>szczypanie · kółko myszy · dwuklik (do kursora)</td></tr>
   <tr><td>przesuwanie</td><td>Shift + przeciągnij · Shift + dwa palce · prawy przycisk</td></tr>
   <tr><td>latanie</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>E</kbd>/<kbd>Spacja</kbd> w górę · <kbd>Q</kbd> w dół · <kbd>Shift</kbd> szybciej</td></tr>
-  <tr><td>przedmioty</td><td>złap i przeciągnij · ✋ na pasku pokazuje przedmiot · <kbd>Esc</kbd> odznacza</td></tr></table><button class="btn" id="helpX">OK</button></div>
+  <tr><td>przedmioty</td><td>złap i przeciągnij · ✋ na pasku pokazuje przedmiot · <kbd>Esc</kbd> odznacza</td></tr></table><p style="margin:10px 0 0;font-size:13px">Grafika: <button class="btn" id="bQual" style="padding:4px 10px"></button></p><button class="btn" id="helpX">OK</button></div>
  <aside id="learn" aria-hidden="true"></aside>
  <div id="dock"><div class="dsec" id="dockMove"></div><div class="dsplit"></div><div class="dsec" id="dockAct"></div></div>
  <div id="hint"></div><div id="status"></div><div id="ver" title="Dotknij: diagnostyka">v${VERSION} · Wirtualne Laboratorium</div><pre id="diag"></pre>`)}
@@ -105,10 +105,10 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  let diagOn=false;$("ver").onclick=()=>{diagOn=!diagOn;$("diag").style.display=diagOn?"block":"none"};
  setInterval(()=>{if(!diagOn)return;const g=gl,ri=g&&g.getExtension("WEBGL_debug_renderer_info");$("diag").textContent=
   `grafika: ${g?(typeof WebGL2RenderingContext!=="undefined"&&g instanceof WebGL2RenderingContext?"WebGL2":"WebGL1"):"BRAK"}${g&&g.isContextLost()?" (UTRACONA)":""}\n`+
-  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"} · głębia: ${g?g.getParameter(g.DEPTH_BITS):"?"} bit\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · próby: ${GLSTAT.retry||0} · klatki: ${GLSTAT.frames}\n`+
+  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"} · głębia: ${g?g.getParameter(g.DEPTH_BITS):"?"} bit · grafika: ${LQ?"lżejsza":"pełna"}\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · próby: ${GLSTAT.retry||0} · klatki: ${GLSTAT.frames}\n`+
   `płótno 3D: ${glc?glc.width+"×"+glc.height:"-"} (gdpr ${gdpr})\nkamera: t=(${[cam.t.x,cam.t.y,cam.t.z].map(v=>v.toFixed(3))}) yaw=${cam.yaw.toFixed(2)} pitch=${cam.pitch.toFixed(2)} dist=${cam.dist.toFixed(3)}\n`+
   `błąd: ${GLSTAT.err||"-"}`},500);
- $("bHelp").onclick=()=>$("help").classList.toggle("on");$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
+ $("bHelp").onclick=()=>$("help").classList.toggle("on");{const q=$("bQual");q.textContent=LQ?"lżejsza — przełącz na pełną":"pełna — przełącz na lżejszą";q.onclick=()=>{try{localStorage.setItem("lab-quality",LQ?"full":"low")}catch(e){}location.reload()}}$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
  const bs=$("bSpeed");bs.onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];bs.textContent=speed===1?"×1":"×¼";bs.classList.toggle("on",speed!==1)};
  $("bZad").onclick=()=>{renderCatalog(window.LAB_TASKS||[]);$("catalog").classList.add("on")};
  // zapis stanu (z parametrami ukrytymi)
