@@ -26,7 +26,7 @@ OF73 = r"""(()=>{const S=window.OF73_TEST,st=S.st;S.newTrial();let slip=null;
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))

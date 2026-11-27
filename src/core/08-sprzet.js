@@ -7,8 +7,8 @@ const sprzet={
  // n=cross(w,d) to strona z podziałką. przezroczysta: plastik do oglądania przez nią (np. pionowa przy ołówku).
  linijka({o,d=SX,w=V(0,-1,0),L=0.3,W=0.03,h=0.002,przezroczysta=false,kolor}={}){const n=nrm(cross(w,d)),start=-0.006,end=L+0.006;
   const c=add(o,add(mul(d,(start+end)/2),add(mul(w,W/2),mul(n,h/2))));const col=kolor||(przezroczysta?"rgba(235,240,236,.42)":"#e9e7df");
-  if(przezroczysta){tapeNow(add(o,mul(n,h-0.0006)),d,w,L,W,{color:"rgba(250,250,244,.72)",labelUp:Math.abs(d.z)>0.9?"d":undefined})}
-  else{box(c,mul(d,(end-start)/2),mul(w,W/2),mul(n,h/2),col,{amb:0.55});tapeNow(add(o,mul(n,h-0.0006)),d,w,L,W,{color:"#f7f6f0"})}},
+  if(przezroczysta){tapeNow(add(o,mul(n,h)),d,w,L,W,{color:"rgba(250,250,244,.72)",labelUp:Math.abs(d.z)>0.9?"d":undefined})}
+  else{box(c,mul(d,(end-start)/2),mul(w,W/2),mul(n,h/2),col,{amb:0.55});tapeNow(add(o,mul(n,h)),d,w,L,W,{color:"#f7f6f0"})}},
  // Taśma miernicza / krawiecka (miękka, cienka). Parametry jak w linijce.
  miarka({o,d=SX,w=SY,L=1.5,W=0.016}={}){tapeNow(o,d,w,L,W)},
  // Tekturowy karton. c: środek podstawy (na stole), hx/hy/hz: połowy wymiarów; taśma pakowa na górze i zjazdy na ściany.
@@ -28,10 +28,10 @@ const sprzet={
   cyl(c1,c2,0.0035,"#e6c493",{n:12,r1:0.0011,caps:false,amb:0.55});cyl(c2,tip,0.0011,"#333",{n:8,r1:0.0002,caps:false,metal:20,spec:0.4});
   if(petla){const w=nrm(cross(u,Z));const lp=[];for(let k=0;k<=10;k++){const t=k/10*2*Math.PI;lp.push(add(add(P,mul(u,0.004)),add(mul(w,0.0046*Math.cos(t)),mul(nrm(cross(u,w)),0.0046*Math.sin(t)))))}for(let k=0;k<10;k++)line(lp[k],lp[k+1],0.0007,"#2b2b2b")}},
  // Kartka (biała), leżąca poziomo: prostokąt [x0,x1]×[y0,y1] na wysokości z.
- kartka({x0,x1,y0,y1,z=0.0003,kolor="#fbfbf7"}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],kolor);lineNow(V(x0,y0,z),V(x1,y0,z),0.0004,"rgba(0,0,0,.12)")},
- // Papier milimetrowy: siatka 1 mm / 5 mm / 10 mm, tekstura powtarzana co 1 cm.
- papierMm({x0,x1,y0,y1,z=0.0003}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],"#fdfcf6");
-  texQuadNow([V(x0,y0,z+0.0001),V(x1,y0,z+0.0001),V(x1,y1,z+0.0001),V(x0,y1,z+0.0001)],[0,0,(x1-x0)/0.01,0,(x1-x0)/0.01,(y1-y0)/0.01,0,(y1-y0)/0.01],"papierMm",512,(g,S)=>{
+ kartka({x0,x1,y0,y1,z=0,kolor="#fbfbf7",warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],kolor,warstwa);stripNow(V(x0,y0,z),V(x1,y0,z),0.0006,"rgba(0,0,0,.10)",warstwa+1)},
+ // Papier milimetrowy: siatka 1 mm / 5 mm / 10 mm, tekstura powtarzana co 1 cm. Leży płasko na wysokości z (warstwa jak kartka).
+ papierMm({x0,x1,y0,y1,z=0,warstwa=1}={}){quadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],"#fdfcf6",warstwa);
+  texQuadNow([V(x0,y0,z),V(x1,y0,z),V(x1,y1,z),V(x0,y1,z)],[0,0,(x1-x0)/0.01,0,(x1-x0)/0.01,(y1-y0)/0.01,0,(y1-y0)/0.01],"papierMm",512,(g,S)=>{
    g.clearRect(0,0,S,S);const pm=S/10;for(let i=0;i<10;i++){g.fillStyle=i===0?"rgba(214,120,60,.85)":i===5?"rgba(214,120,60,.6)":"rgba(214,120,60,.32)";const w=i===0?4:i===5?2.5:1.5;
     g.fillRect(i*pm-w/2,0,w,S);g.fillRect(0,i*pm-w/2,S,w)}g.fillRect(S-2,0,2,S);g.fillRect(0,S-2,S,2)})},
  // Plastelina: spłaszczona bryłka.

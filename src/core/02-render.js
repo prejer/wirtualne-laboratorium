@@ -25,7 +25,7 @@ let VW,VH,VX,VY,CB,isPip=false;
 let gdpr=1;function resize(){if(!glc)return;forceRedraw();const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
  cv.width=Math.round(SW*dpr);cv.height=Math.round(SH*dpr);glc.width=Math.round(SW*gdpr);glc.height=Math.round(SH*gdpr)}
 function camBasis(c){const cp=Math.cos(c.pitch);const pos=add(c.t,V(c.dist*cp*Math.sin(c.yaw),-c.dist*cp*Math.cos(c.yaw),c.dist*Math.sin(c.pitch)));
- const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5}}
+ const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5};NEAR=Math.max(0.004,Math.min(0.06,c.dist*0.12,(pos.z-(T.table?.floor??-0.76))*0.5));FAR=Math.max(6,c.dist*12)}
 function P2(p){const d=sub(p,CB.pos);const zc=dot(d,CB.f);if(zc<0.01)return null;return{x:VX+VW/2+dot(d,CB.r)*CB.F/zc,y:VY+VH/2-dot(d,CB.up)*CB.F/zc,k:CB.F/zc}}
 const dz=p=>len(sub(p,CB.pos));
 
@@ -38,10 +38,10 @@ function shadeC(col,n,o,cen){const b=rgba(col);let d=dot(n,LIGHT);if(o.two)d=Mat
  const f=x=>Math.max(0,Math.min(1,x*k+sp));return[f(b[0]),f(b[1]),f(b[2]),o.alpha??b[3]]}
 
 // ---------- bufory geometrii (budowane co klatkę, osobno dla każdego widoku) ----------
-let OP=[],TR=[],TX=[],shadowPolys=[];   // nieprzezroczyste trójkąty, przezroczyste wielokąty, taśmy z teksturą
+let OP=[],TR=[],TX=[],DL=[],shadowPolys=[];   // nieprzezroczyste trójkąty, przezroczyste wielokąty, taśmy z teksturą
 function pushPoly(arr,pts,c){for(let i=1;i<pts.length-1;i++)for(const p of[pts[0],pts[i],pts[i+1]])arr.push(p.x,p.y,p.z,c[0],c[1],c[2],c[3])}
 function poly(pts,c){if(pts.length<3)return;if(c[3]<0.999){TR.push({pts,c,z:dz(mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length))});return}pushPoly(OP,pts,c)}
-function quadNow(pts,col){poly(pts,rgba(col))}
+function quadNow(pts,col,layer){if(layer){const c=rgba(col);DL.push({pts,c,layer});return}poly(pts,rgba(col))}
 function face(pts,n,col,o){o=o||{};const c=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);if(o.shadow!==false)shadowPolys.push(pts);
  if(!o.two&&dot(n,sub(CB.pos,c))<=0)return;poly(pts,shadeC(col,n,o,c))}
 // linia o grubości w [m] — wstęga zwrócona do kamery, nie cieńsza niż ~1,2 px
@@ -49,7 +49,7 @@ function line(a,b,w,col){const c=typeof col==="string"?rgba(col):col;const ab=su
   const zc=Math.max(0.004,dot(sub(p,CB.pos),CB.f));return mul(s,Math.max(w,1.2*zc/CB.F)/2/l)};const sa=side(a),sb=side(b);poly([sub(a,sa),sub(b,sb),add(b,sb),add(a,sa)],c)}
 function lineNow(a,b,w,col){line(a,b,w,col)}
 // pasek leżący płasko na płaszczyźnie poziomej
-function stripNow(a,b,w,col){const d=nrm(sub(b,a)),n=mul(nrm(V(-d.y,d.x,0)),w/2);quadNow([sub(a,n),sub(b,n),add(b,n),add(a,n)],col)}
+function stripNow(a,b,w,col,layer){const d=nrm(sub(b,a)),n=mul(nrm(V(-d.y,d.x,0)),w/2);quadNow([sub(a,n),sub(b,n),add(b,n),add(a,n)],col,layer)}
 function frame3(u){const e1=nrm(cross(u,Math.abs(u.z)<0.9?Z:V(1,0,0)));return[e1,cross(u,e1)]}
 function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab),u=mul(ab,1/L);const[e1,e2]=frame3(u);const n=o.n||14,ns=Math.max(1,Math.ceil(L/(o.seg||0.06)));
  const ring=(t,r)=>{const c=add(a,mul(ab,t));return Array.from({length:n},(_,i)=>{const th=(i+(o.rot||0))*2*Math.PI/n;return add(c,add(mul(e1,r*Math.cos(th)),mul(e2,r*Math.sin(th))))})};
@@ -71,8 +71,8 @@ function tapeTile(W,i,o,mir){const key=W+"|"+i+"|"+(o.labelUp||"edge")+"|"+mir;l
  const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
  const af=gl.getExtension("EXT_texture_filter_anisotropic");if(af)gl.texParameterf(gl.TEXTURE_2D,af.TEXTURE_MAX_ANISOTROPY_EXT,8);texCache.set(key,tx);return tx}
-function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;const lift=V(0,0,0.0006);const o2=add(o,lift);
- quadNow([o2,add(o2,mul(d,L)),add(add(o2,mul(d,L)),mul(w,W)),add(o2,mul(w,W))],opts.color||"#f6e36a");
+function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;const o2=o;   // taśma leży DOKŁADNIE na powierzchni; nad nią wynosi ją warstwa (polygonOffset), nie odległość — bez migotania
+ quadNow([o2,add(o2,mul(d,L)),add(add(o2,mul(d,L)),mul(w,W)),add(o2,mul(w,W))],opts.color||"#f6e36a",opts.layer||2);
  const n=Math.ceil(L/TILE-1e-9);for(let i=0;i<n;i++){const a=i*TILE,b=Math.min(L,a+TILE),ub=(b-a)/TILE;const p0=add(o2,mul(d,a)),p1=add(o2,mul(d,b));
   TX.push({tex:tapeTile(W,i,opts,mir),pts:[p0,p1,add(p1,mul(w,W)),add(p0,mul(w,W))],uv:[0,0,ub,0,ub,1,0,1]})}}
 
@@ -94,7 +94,7 @@ function initGL(){texCache.clear();PC=prog(`attribute vec3 p;attribute vec4 c;un
  `precision mediump float;varying vec2 vt;uniform sampler2D s;void main(){gl_FragColor=texture2D(s,vt);}`);
  bufC=gl.createBuffer();bufT=gl.createBuffer()}
 if(gl)initGL();
-const NEAR=0.004,FAR=25;
+let NEAR=0.004,FAR=25;
 function viewMatrix(){const sx=2*CB.F/VW,sy=2*CB.F/VH,A=(FAR+NEAR)/(FAR-NEAR),B=-2*FAR*NEAR/(FAR-NEAR);const{r,up,f,pos}=CB;
  const R=[[r.x*sx,r.y*sx,r.z*sx,-dot(r,pos)*sx],[up.x*sy,up.y*sy,up.z*sy,-dot(up,pos)*sy],[f.x*A,f.y*A,f.z*A,-dot(f,pos)*A+B],[f.x,f.y,f.z,-dot(f,pos)]];
  const m=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++)m[c*4+k]=R[k][c];return m}
@@ -125,13 +125,13 @@ const D={ // API rysowania dla zadania
 // Zadanie podaje scene.table={x0,x1,y0,y1}; blat ma górę na z=0.
 function drawTable(tb){const X=V(1,0,0),Y=V(0,1,0);const th=tb.th||0.028,fz=tb.floor??-0.75,{x0,x1,y0,y1}=tb,pad=3;
  quadNow([V(x0-pad,y0-pad,fz),V(x1+pad,y0-pad,fz),V(x1+pad,y1+pad,fz),V(x0-pad,y1+pad,fz)],"#a49c90");
- for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;stripNow(V(x0-pad,y,fz+0.0008),V(x1+pad,y,fz+0.0008),0.004,"rgba(0,0,0,.06)")}
+ for(let k=-6;k<=6;k++){const y=(y0+y1)/2+k*0.3;stripNow(V(x0-pad,y,fz),V(x1+pad,y,fz),0.004,"rgba(0,0,0,.06)",0.5)}
  const li=0.05,lw=0.022,lh=(-fz-th)/2;for(const[x,y]of[[x0+li,y0+li],[x1-li,y0+li],[x0+li,y1-li],[x1-li,y1-li]])box(V(x,y,-th-lh),mul(X,lw),mul(Y,lw),mul(Z,lh),"#b08d5f",{shadow:false});
  const ax=(x1-x0)/2-li-lw,ay=(y1-y0)/2-li-lw;
  for(const y of[y0+li,y1-li])box(V((x0+x1)/2,y,-th-0.04),mul(X,ax),mul(Y,0.009),mul(Z,0.04),"#bd9a6b",{shadow:false});
  for(const x of[x0+li,x1-li])box(V(x,(y0+y1)/2,-th-0.04),mul(X,0.009),mul(Y,ay),mul(Z,0.04),"#bd9a6b",{shadow:false});
  box(V((x0+x1)/2,(y0+y1)/2,-th/2),mul(X,(x1-x0)/2),mul(Y,(y1-y0)/2),mul(Z,th/2),"#d4b283",{cols:["#c9a675","#c9a675","#d4b283","#d4b283","#e2c597","#a88a62"],shadow:false,amb:0.55});
- if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);stripNow(V(x0,y,0.00012),V(x1,y+0.004*Math.sin(k*1.7),0.00012),0.0012,"rgba(140,95,45,.10)")}}}
+ if(!isPip){const n=Math.round((y1-y0)/0.03);for(let k=0;k<n;k++){const y=y0+0.015+k*(y1-y0-0.03)/(n-1);stripNow(V(x0,y,0),V(x1,y+0.004*Math.sin(k*1.7),0),0.0012,"rgba(140,95,45,.10)",0.5)}}}
 
 // ---------- warstwa 2D: uchwyty przedmiotów ----------
 function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
@@ -146,17 +146,20 @@ function drawGrabUI(c){const L=grabList();const t=performance.now()/1000;
   c.fillStyle=act?"#1e5aa8":"rgba(27,33,48,.85)";c.beginPath();c.roundRect(q.x-w/2,ly,w,22,11);c.fill();c.fillStyle="#fff";c.textAlign="center";c.textBaseline="middle";c.fillText(txt,q.x,ly+11);c.restore()}}
 
 // ---------- jeden widok: geometria → GL (głębia) → warstwa 2D ----------
-function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBasis(view.cam);OP=[];TR=[];TX=[];shadowPolys=[];
+function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBasis(view.cam);OP=[];TR=[];TX=[];DL=[];shadowPolys=[];
  if(T.table)drawTable(T.table);T.draw(D);
  if(gl&&!glLost){const x=Math.round(VX*gdpr),y=Math.round((SH-VY-VH)*gdpr),w=Math.round(VW*gdpr),h=Math.round(VH*gdpr);gl.viewport(x,y,w,h);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,y,w,h);
   if(pip){gl.clearColor(0.84,0.85,0.87,1)}else gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clearStencil(0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
   const M=viewMatrix();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.depthMask(true);
   drawColor(OP,M);                                                                        // 1) bryły i powierzchnie
+  if(DL.length){gl.depthMask(false);gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.POLYGON_OFFSET_FILL);
+   const ls=[...new Set(DL.map(d=>d.layer))].sort((a,b)=>a-b);for(const L of ls){gl.polygonOffset(-1,-4*L);const a=[];for(const d of DL)if(d.layer===L)pushPoly(a,d.pts,d.c);drawColor(a,M)}
+   gl.disable(gl.POLYGON_OFFSET_FILL);gl.disable(gl.BLEND);gl.depthMask(true)}                // 1b) płaskie warstwy leżące na powierzchni (kartki, ślady) — kolejność warstw, bez migotania
   gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
-  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1,-2);
+  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1,-14);
   gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.EQUAL,0,0xff);gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);drawColor(shadowData(T.shadowArea),M);gl.disable(gl.STENCIL_TEST); // 2) cienie
   gl.disable(gl.POLYGON_OFFSET_FILL);const tr=[];TR.sort((a,b)=>b.z-a.z).forEach(t=>pushPoly(tr,t.pts,t.c));drawColor(tr,M);   // 3) półprzezroczyste (od najdalszych)
-  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-4);drawTapes(M);gl.disable(gl.POLYGON_OFFSET_FILL);                      // 4) podziałki taśm i linijek
+  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-2,-18);drawTapes(M);gl.disable(gl.POLYGON_OFFSET_FILL);                      // 4) podziałki taśm i linijek
   gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.SCISSOR_TEST)}
  const c=ctx;c.save();c.beginPath();c.rect(VX,VY,VW,VH);c.clip();
  if(!pip&&mode==="nauka"&&T.learn)T.learn(D,ctx,viz);if(!pip)drawGrabUI(ctx);

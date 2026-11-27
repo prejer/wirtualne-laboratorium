@@ -69,10 +69,10 @@ const S=LAB.sprzet;
 function draw(D){const c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V(st.Xt,0,0);
  const o=st.off,p0=0.02+o,p1=p0+PAPW;
  S.kartka({x0:p0,x1:p1,y0:-0.105,y1:0.105});                                        // kartka A4 (ciągnięta)
- S.papierMm({x0:0.30,x1:0.51,y0:0.13,y1:0.33,z:0.0002});                            // papier milimetrowy z zestawu
- for(const x of dots)D.stripNow(V(x+o-0.0005,0,0.00055),V(x+o+0.0005,0,0.00055),0.0009,"rgba(30,30,35,.85)");   // ślad grafitu
- for(const[t0,t1]of trail)D.stripNow(V(t0+o,0,0.0005),V(Math.max(t1,t0+0.0004)+o,0,0.0005),0.0005,"rgba(50,50,55,.8)");
- if(st.mark!=null){const mx=st.mark+o;D.lineNow(V(mx-0.003,0.014,0.0006),V(mx+0.003,0.020,0.0006),0.0006,"#555");D.lineNow(V(mx-0.003,0.020,0.0006),V(mx+0.003,0.014,0.0006),0.0006,"#555")}
+ S.papierMm({x0:0.30,x1:0.51,y0:0.13,y1:0.33});                            // papier milimetrowy z zestawu
+ for(const x of dots)D.stripNow(V(x+o-0.0005,0,0),V(x+o+0.0005,0,0),0.0009,"rgba(30,30,35,.85)",3);   // ślad grafitu
+ for(const[t0,t1]of trail)D.stripNow(V(t0+o,0,0),V(Math.max(t1,t0+0.0004)+o,0,0),0.0005,"rgba(50,50,55,.8)",3);
+ if(st.mark!=null){const mx=st.mark+o;D.stripNow(V(mx-0.003,0.014,0),V(mx+0.003,0.020,0),0.0006,"#555",3);D.stripNow(V(mx-0.003,0.020,0),V(mx+0.003,0.014,0),0.0006,"#555",3)}
  S.linijka({o:V(0,-0.016,0),d:X,w:V(0,-1,0),L:0.60,W:0.03});                        // linijka pozioma 60 cm
  S.karton({c:V(-0.15,0,0),hx:0.15,hy:0.18,hz:BOXH/2});                               // karton (ściana x = 0)
  S.tasma({c:V(0,0,st.zA),n:X,u:Y,dl:0.04,szer:0.026});                               // taśma z zaczepem nici

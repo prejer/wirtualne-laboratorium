@@ -2,7 +2,7 @@
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.12";
+const VERSION="0.13";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -46,11 +46,11 @@ let lastStatus=null;function status(){let s=T.status?T.status():"";if(flashMsg&&
 const dockSync=[];
 function toolBtn(icon,label,tip){const b=document.createElement("button");b.className="tool";b.title=tip||"";b.innerHTML=`<svg viewBox="0 0 24 24">${ICONS[icon]||ICONS.hand}</svg><span></span>`;b.lastChild.textContent=label;return b}
 function buildDock(){const mv=$("dockMove"),ac=$("dockAct");mv.innerHTML="";ac.innerHTML="";
- for(const m of T.movables){const b=toolBtn("grab",m.label,`${m.label}: złap w scenie i przeciągnij (kliknij, żeby pokazać)`);b.classList.add("mv");b.onclick=()=>setMoveTool(m.id);mv.appendChild(b);dockSync.push(()=>b.classList.toggle("active",moveTool===m.id))}
+ for(const m of T.movables){if(m.dock===false)continue;const b=toolBtn("grab",m.label,`${m.label}: złap w scenie i przeciągnij (kliknij, żeby pokazać)`);b.classList.add("mv");b.onclick=()=>setMoveTool(m.id);mv.appendChild(b);dockSync.push(()=>b.classList.toggle("active",moveTool===m.id))}
  for(const a of T.actions){const lab=()=>typeof a.label==="function"?a.label():a.label;const b=toolBtn(a.icon,lab(),a.tip);
   b.onclick=()=>{a.run();b.classList.remove("pulse");void b.offsetWidth;b.classList.add("pulse")};ac.appendChild(b);
   if(typeof a.label==="function")dockSync.push(()=>{const t=lab();if(b.lastChild.textContent!==t)b.lastChild.textContent=t})}
- mv.style.display=T.movables.length?"":"none";$("dock").querySelector(".dsplit").style.display=T.movables.length&&T.actions.length?"":"none";
+ const nm=T.movables.filter(m=>m.dock!==false).length;mv.style.display=nm?"":"none";$("dock").querySelector(".dsplit").style.display=nm&&T.actions.length?"":"none";
  requestAnimationFrame(()=>{$("status").style.bottom=($("dock").offsetHeight+24)+"px"})}
 function syncUI(){dockSync.forEach(f=>f())}
 
@@ -105,7 +105,7 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  let diagOn=false;$("ver").onclick=()=>{diagOn=!diagOn;$("diag").style.display=diagOn?"block":"none"};
  setInterval(()=>{if(!diagOn)return;const g=gl,ri=g&&g.getExtension("WEBGL_debug_renderer_info");$("diag").textContent=
   `grafika: ${g?(typeof WebGL2RenderingContext!=="undefined"&&g instanceof WebGL2RenderingContext?"WebGL2":"WebGL1"):"BRAK"}${g&&g.isContextLost()?" (UTRACONA)":""}\n`+
-  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"}\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · próby: ${GLSTAT.retry||0} · klatki: ${GLSTAT.frames}\n`+
+  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"} · głębia: ${g?g.getParameter(g.DEPTH_BITS):"?"} bit\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · próby: ${GLSTAT.retry||0} · klatki: ${GLSTAT.frames}\n`+
   `płótno 3D: ${glc?glc.width+"×"+glc.height:"-"} (gdpr ${gdpr})\nkamera: t=(${[cam.t.x,cam.t.y,cam.t.z].map(v=>v.toFixed(3))}) yaw=${cam.yaw.toFixed(2)} pitch=${cam.pitch.toFixed(2)} dist=${cam.dist.toFixed(3)}\n`+
   `błąd: ${GLSTAT.err||"-"}`},500);
  $("bHelp").onclick=()=>$("help").classList.toggle("on");$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
