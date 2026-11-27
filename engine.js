@@ -29,17 +29,20 @@ const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
 let glc=null,gl=null,glLost=false,glRetry=0;const GLSTAT={lost:0,remade:0,frames:0,err:""};
 addEventListener("error",e=>{GLSTAT.err=(e.message||"")+" @"+(e.lineno||"")});
-function makeGL(){if(glc){glc.remove();GLSTAT.remade++}glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
- gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getContext("experimental-webgl",GLOPT)||glc.getContext("webgl",{stencil:true})||glc.getContext("webgl");
- glLost=false;if(!gl)return false;
- glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
- glc.addEventListener("webglcontextrestored",()=>{clearTimeout(glRetry);initGL();glLost=false;flash("Grafika 3D została odświeżona.")});return true}
+const getCtx=c=>c.getContext("webgl2",GLOPT)||c.getContext("webgl",GLOPT)||c.getContext("experimental-webgl",GLOPT)||c.getContext("webgl",{stencil:true})||c.getContext("webgl");
+function watch(c){c.addEventListener("webglcontextlost",e=>{e.preventDefault();if(c!==glc)return;glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(newContext,1500)});
+ c.addEventListener("webglcontextrestored",()=>{if(c!==glc)return;clearTimeout(glRetry);initGL();glLost=false;forceRedraw();flash("Grafika 3D wróciła.")})}
+function makeGL(){glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);gl=getCtx(glc);if(gl)watch(glc);return!!gl}
+// przeglądarka nie oddała grafiki — próbujemy na nowym płótnie; stare zostaje, dopóki nowe nie zadziała (ponawiamy co 2 s)
+function newContext(){if(!glLost)return;const c=document.createElement("canvas");c.id="glc";const g=getCtx(c);
+ if(!g){GLSTAT.retry=(GLSTAT.retry||0)+1;glRetry=setTimeout(newContext,2000);return}
+ glc.remove();glc=c;gl=g;cv.parentNode.insertBefore(glc,cv);watch(glc);GLSTAT.remade++;initGL();glLost=false;resize();forceRedraw();flash("Grafika 3D została odświeżona.")}
 makeGL();
 if(!gl){const m=document.createElement("div");m.id="noGL";m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
 const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;
 let VW,VH,VX,VY,CB,isPip=false;
 // gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
-let gdpr=1;function resize(){if(!glc)return;const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
+let gdpr=1;function resize(){if(!glc)return;forceRedraw();const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
  cv.width=Math.round(SW*dpr);cv.height=Math.round(SH*dpr);glc.width=Math.round(SW*gdpr);glc.height=Math.round(SH*gdpr)}
 function camBasis(c){const cp=Math.cos(c.pitch);const pos=add(c.t,V(c.dist*cp*Math.sin(c.yaw),-c.dist*cp*Math.cos(c.yaw),c.dist*Math.sin(c.pitch)));
  const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5}}
@@ -176,7 +179,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
   c.strokeStyle="#fff";c.lineWidth=3;c.strokeRect(VX+1.5,VY+1.5,VW-3,VH-3);c.fillStyle="rgba(27,33,48,.85)";c.fillRect(VX+6,VY+6,44,18);c.fillStyle="#fff";c.font="600 11px system-ui";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("lupa",VX+12,VY+19)}
  c.restore()}
 function draw(){GLSTAT.frames++;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
- if(gl&&!glLost&&gl.isContextLost()){glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize())}},1200)}
+ if(gl&&!glLost&&gl.isContextLost()){glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(newContext,1500)}
  if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}
  keepCamAbove();scene({x:0,y:0,w:SW,h:SH,cam},false);
@@ -239,7 +242,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.8";
+const VERSION="0.9";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -293,8 +296,12 @@ function syncUI(){dockSync.forEach(f=>f())}
 
 // ---------- tryby: Pomiar / Nauka ----------
 let mode="pomiar";
-function setMode(m){mode=m;document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));const L=$("learn");L.classList.toggle("on",m==="nauka"&&!!T.learn);L.setAttribute("aria-hidden",m!=="nauka")}
+function setMode(m){mode=m;forceRedraw();document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));const L=$("learn");L.classList.toggle("on",m==="nauka"&&!!T.learn);L.setAttribute("aria-hidden",m!=="nauka")}
 let learnHTML="";function renderLearn(rows){const h=rows?rows.map(r=>`<div class="lr"><span${r[2]?` style="color:${r[2]}"`:""}>${r[0]}</span><b>${r[1]}</b></div>`).join(""):"";if(h!==learnHTML){learnHTML=h;$("learn").innerHTML=h?`<div class="lh">Nauka · wielkości w układzie</div>${h}`:""}}
+
+// ---------- rysowanie na żądanie ----------
+let lastKey=null;function forceRedraw(){lastKey=null}
+function frameKey(){let st="";try{st=T.getState?JSON.stringify(T.getState()):""}catch(e){}return [cam.t.x,cam.t.y,cam.t.z,cam.yaw,cam.pitch,cam.dist,SW,SH,mode,moveTool,hoverId,st].join("|")}
 
 // ---------- tempo symulacji ----------
 const SPEEDS=[1,0.25];let speed=1;
@@ -338,7 +345,7 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  let diagOn=false;$("ver").onclick=()=>{diagOn=!diagOn;$("diag").style.display=diagOn?"block":"none"};
  setInterval(()=>{if(!diagOn)return;const g=gl,ri=g&&g.getExtension("WEBGL_debug_renderer_info");$("diag").textContent=
   `grafika: ${g?(typeof WebGL2RenderingContext!=="undefined"&&g instanceof WebGL2RenderingContext?"WebGL2":"WebGL1"):"BRAK"}${g&&g.isContextLost()?" (UTRACONA)":""}\n`+
-  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"}\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · klatki: ${GLSTAT.frames}\n`+
+  `GPU: ${ri?g.getParameter(ri.UNMASKED_RENDERER_WEBGL):"?"}\nutraty: ${GLSTAT.lost} · odtworzenia: ${GLSTAT.remade} · próby: ${GLSTAT.retry||0} · klatki: ${GLSTAT.frames}\n`+
   `płótno 3D: ${glc?glc.width+"×"+glc.height:"-"} (gdpr ${gdpr})\nkamera: t=(${[cam.t.x,cam.t.y,cam.t.z].map(v=>v.toFixed(3))}) yaw=${cam.yaw.toFixed(2)} pitch=${cam.pitch.toFixed(2)} dist=${cam.dist.toFixed(3)}\n`+
   `błąd: ${GLSTAT.err||"-"}`},500);
  $("bHelp").onclick=()=>$("help").classList.toggle("on");$("helpX").onclick=()=>{$("help").classList.remove("on");try{localStorage.setItem("lab-help-seen","1")}catch(e){}};
@@ -348,7 +355,10 @@ function run(){if(T.light)LIGHT=nrm(T.light);document.title=T.meta.title+" — W
  const persist=()=>{if(T.getState)try{localStorage.setItem(SKEY,JSON.stringify({...T.getState(),__params:P}))}catch(e){}};setInterval(persist,2000);document.addEventListener("visibilitychange",persist);window.addEventListener("pagehide",persist);
  buildDock();resize();Object.assign(cam,T.views[0].cam());cam.dist*=2;cam.yaw-=0.6;
  let tPrev=performance.now();function loop(now){let dt=Math.min(0.05,(now-tPrev)/1000);tPrev=now;
-  flyStep(dt);T.update(dt*speed);learnRows=null;draw();renderLearn(mode==="nauka"?learnRows:null);status();syncUI();requestAnimationFrame(loop)}
+  flyStep(dt);T.update(dt*speed);
+  // rysujemy tylko, gdy coś się zmieniło (kamera, stan układu, uchwyty, tryb) — mniej pracy GPU, mniej utrat grafiki na tabletach
+  const key=frameKey();if(key!==lastKey||camAnim||grab||glLost){lastKey=key;learnRows=null;draw();renderLearn(mode==="nauka"?learnRows:null)}
+  status();syncUI();requestAnimationFrame(loop)}
  window.addEventListener("resize",()=>resize());new ResizeObserver(()=>resize()).observe(cv);requestAnimationFrame(loop)}
 
 // ---------- tryb Nauki: pomocnicze rysowanie (wektory, kąty, wymiary) + panel liczb w HTML ----------

@@ -9,17 +9,20 @@ const cv=$("cv"),ctx=cv.getContext("2d");let SW=300,SH=300,dpr=1;
 const GLOPT={antialias:true,stencil:true,depth:true,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false};
 let glc=null,gl=null,glLost=false,glRetry=0;const GLSTAT={lost:0,remade:0,frames:0,err:""};
 addEventListener("error",e=>{GLSTAT.err=(e.message||"")+" @"+(e.lineno||"")});
-function makeGL(){if(glc){glc.remove();GLSTAT.remade++}glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);
- gl=glc.getContext("webgl2",GLOPT)||glc.getContext("webgl",GLOPT)||glc.getContext("experimental-webgl",GLOPT)||glc.getContext("webgl",{stencil:true})||glc.getContext("webgl");
- glLost=false;if(!gl)return false;
- glc.addEventListener("webglcontextlost",e=>{e.preventDefault();glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize(),flash("Grafika 3D została odświeżona."))}},1200)});
- glc.addEventListener("webglcontextrestored",()=>{clearTimeout(glRetry);initGL();glLost=false;flash("Grafika 3D została odświeżona.")});return true}
+const getCtx=c=>c.getContext("webgl2",GLOPT)||c.getContext("webgl",GLOPT)||c.getContext("experimental-webgl",GLOPT)||c.getContext("webgl",{stencil:true})||c.getContext("webgl");
+function watch(c){c.addEventListener("webglcontextlost",e=>{e.preventDefault();if(c!==glc)return;glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(newContext,1500)});
+ c.addEventListener("webglcontextrestored",()=>{if(c!==glc)return;clearTimeout(glRetry);initGL();glLost=false;forceRedraw();flash("Grafika 3D wróciła.")})}
+function makeGL(){glc=document.createElement("canvas");glc.id="glc";cv.parentNode.insertBefore(glc,cv);gl=getCtx(glc);if(gl)watch(glc);return!!gl}
+// przeglądarka nie oddała grafiki — próbujemy na nowym płótnie; stare zostaje, dopóki nowe nie zadziała (ponawiamy co 2 s)
+function newContext(){if(!glLost)return;const c=document.createElement("canvas");c.id="glc";const g=getCtx(c);
+ if(!g){GLSTAT.retry=(GLSTAT.retry||0)+1;glRetry=setTimeout(newContext,2000);return}
+ glc.remove();glc=c;gl=g;cv.parentNode.insertBefore(glc,cv);watch(glc);GLSTAT.remade++;initGL();glLost=false;resize();forceRedraw();flash("Grafika 3D została odświeżona.")}
 makeGL();
 if(!gl){const m=document.createElement("div");m.id="noGL";m.style.cssText="position:absolute;inset:0;display:grid;place-items:center;font:600 16px system-ui;color:#333";m.textContent="Ta przeglądarka nie udostępnia grafiki 3D (WebGL). Otwórz laboratorium w Chrome, Firefoksie albo Safari.";cv.parentNode.appendChild(m)}
 const cam={t:V(0,0,0.2),yaw:0,pitch:0.3,dist:1.5};let camAnim=null;
 let VW,VH,VX,VY,CB,isPip=false;
 // gdpr: rozdzielczość sceny 3D — ograniczona (MSAA + bufor głębokości przy pełnym dpr tabletu zjada setki MB pamięci GPU)
-let gdpr=1;function resize(){if(!glc)return;const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
+let gdpr=1;function resize(){if(!glc)return;forceRedraw();const b=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,3);gdpr=Math.min(dpr,matchMedia("(pointer:coarse)").matches?1.5:2);SW=b.width;SH=b.height;
  cv.width=Math.round(SW*dpr);cv.height=Math.round(SH*dpr);glc.width=Math.round(SW*gdpr);glc.height=Math.round(SH*gdpr)}
 function camBasis(c){const cp=Math.cos(c.pitch);const pos=add(c.t,V(c.dist*cp*Math.sin(c.yaw),-c.dist*cp*Math.cos(c.yaw),c.dist*Math.sin(c.pitch)));
  const f=nrm(sub(c.t,pos));let r=cross(f,Z);if(len(r)<1e-6)r=V(Math.cos(c.yaw),Math.sin(c.yaw),0);r=nrm(r);CB={pos,f,r,up:cross(r,f),F:Math.min(VW,VH)*1.5}}
@@ -156,7 +159,7 @@ function scene(view,pip){VW=view.w;VH=view.h;VX=view.x;VY=view.y;isPip=pip;camBa
   c.strokeStyle="#fff";c.lineWidth=3;c.strokeRect(VX+1.5,VY+1.5,VW-3,VH-3);c.fillStyle="rgba(27,33,48,.85)";c.fillRect(VX+6,VY+6,44,18);c.fillStyle="#fff";c.font="600 11px system-ui";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("lupa",VX+12,VY+19)}
  c.restore()}
 function draw(){GLSTAT.frames++;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(dpr,0,0,dpr,0,0);
- if(gl&&!glLost&&gl.isContextLost()){glLost=true;clearTimeout(glRetry);glRetry=setTimeout(()=>{if(glLost){makeGL()&&(initGL(),resize())}},1200)}
+ if(gl&&!glLost&&gl.isContextLost()){glLost=true;GLSTAT.lost++;clearTimeout(glRetry);glRetry=setTimeout(newContext,1500)}
  if(gl&&!glLost){gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,glc.width,glc.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}
  if(camAnim){const t=Math.min(1,(performance.now()-camAnim.t0)/camAnim.d),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;cam.t=lerp(camAnim.a.t,camAnim.b.t,e);for(const k of["yaw","pitch","dist"])cam[k]=camAnim.a[k]+(camAnim.b[k]-camAnim.a[k])*e;if(t>=1)camAnim=null}
  keepCamAbove();scene({x:0,y:0,w:SW,h:SH,cam},false);
