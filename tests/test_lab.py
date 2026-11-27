@@ -45,10 +45,15 @@ OF71 = r"""(()=>{const T=window.OF71_TEST,st=T.st,P=T.P();st.bP=1;st.bM=3;for(le
  st.bP=0;st.bM=0;st.mC=2;st.mV=1;const v0=T.meterV();for(let i=0;i<1000;i++)T.step(0.02);const v20=T.meterV();st.mC=0;st.mV=0;
  return{U1,sum:U1+U2,UB:P.UB,U1p:P.UB*P.C2/(P.C1+P.C2),v0,v0p:U1*T.RW/(P.R+T.RW),tau:20/Math.log(v0/v20),tau_p:(P.R+T.RW)*P.C1}})()"""
 
+OF56 = r"""(()=>{const T=window.OF56_TEST,st=T.st,P=T.P(),out=[];st.U=5;
+for(let d=0;d<3;d++){st.dioda=d;const e=T.diode();let best=0,bx=0;
+ for(let x=0.03;x<0.25;x+=0.0005){st.x=x;const m=T.marker(),E=LAB.V(m.x,0,0.35);const g=T.glow(m,E,e.I);if(g){const a=parseFloat(g.c.split(",")[3]);if(a>best+1e-9){best=a;bx=x}}}
+ out.push({d,lam:T.DTR*bx/Math.hypot(bx,st.H)*1e9,lp:[P.lpR,P.lpG,P.lpB][d],kir:e.UR+e.UD-st.U})}st.U=0;return out})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -59,6 +64,10 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "of56-2-led-cd":
+            for r in pg.evaluate(OF56):
+                check(f"OF56 dyfrakcja na CD: d·sinα = λ (dioda {r['d']})", abs(r["lam"] - r["lp"]) < 8, f"λ={r['lam']:.0f} nm, szczyt {r['lp']:.0f} nm")
+                check(f"OF56 U = I·(R+R_s) + U_j (dioda {r['d']})", abs(r["kir"]) < 1e-6)
         elif tid == "of71-2-rc":
             r = pg.evaluate(OF71)
             check("OF71 ładowanie 1–3: U₁+U₂ = U_B, podział wg pojemności", abs(r["sum"] - r["UB"]) < 1e-3 and abs(r["U1"] - r["U1p"]) < 1e-3)
