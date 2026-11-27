@@ -9,7 +9,7 @@ addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;showI
 addEventListener("appinstalled",()=>{installEvt=null;hideInstall();try{localStorage.setItem("lab-installed","1")}catch(e){}});
 function installDismissed(){try{return Date.now()-(+localStorage.getItem("lab-install-later")||0)<3*864e5}catch(e){return false}}
 function hideInstall(){const b=document.getElementById("install");if(b)b.remove()}
-function showInstall(){if(standalone()||installDismissed()||document.getElementById("install"))return;if(!installEvt&&!isIOS())return;
+function showInstall(){if(window.LAB_MOBILE||standalone()||installDismissed()||document.getElementById("install"))return;if(!installEvt&&!isIOS())return;
  const b=document.createElement("div");b.id="install";
  b.innerHTML=`<img src="icons/icon-192.png" alt=""><div class="it"><b>Zainstaluj laboratorium</b><span>${isIOS()&&!installEvt?"W Safari: <b>Udostępnij</b> → <b>Do ekranu początkowego</b>. ":""}Własne okno, pełny ekran, działa offline — płynniej i stabilniej niż w karcie przeglądarki.</span></div>
   <div class="ib">${installEvt?'<button class="btn p" id="instGo">Zainstaluj</button>':""}<button class="btn" id="instLater">Nie teraz</button></div>`;

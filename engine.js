@@ -242,7 +242,7 @@ function flyStep(dt){if(!keys.size)return;VW=SW;VH=SH;camBasis(cam);const sp=Mat
 // Buduje cały interfejs wokół sceny: górny pasek (Zadania, kamery, Pomiar/Nauka, tempo, nowy zestaw, pomoc, Zadanie),
 // dolny dock (lewa sekcja: przedmioty do chwytania, prawa: akcje jednorazowe), panel Nauki, komunikaty, ekran startowy.
 // Zadanie przekazuje wyłącznie konfigurację — patrz LAB.defineTask i src/ZADANIA.md.
-const VERSION="0.10";
+const VERSION="0.11";
 const ICONS={
  tape:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/>',
  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 7-6 7-2.6 0-4-1.3-5.3-3.4L3.5 14a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
@@ -403,7 +403,7 @@ addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;showI
 addEventListener("appinstalled",()=>{installEvt=null;hideInstall();try{localStorage.setItem("lab-installed","1")}catch(e){}});
 function installDismissed(){try{return Date.now()-(+localStorage.getItem("lab-install-later")||0)<3*864e5}catch(e){return false}}
 function hideInstall(){const b=document.getElementById("install");if(b)b.remove()}
-function showInstall(){if(standalone()||installDismissed()||document.getElementById("install"))return;if(!installEvt&&!isIOS())return;
+function showInstall(){if(window.LAB_MOBILE||standalone()||installDismissed()||document.getElementById("install"))return;if(!installEvt&&!isIOS())return;
  const b=document.createElement("div");b.id="install";
  b.innerHTML=`<img src="icons/icon-192.png" alt=""><div class="it"><b>Zainstaluj laboratorium</b><span>${isIOS()&&!installEvt?"W Safari: <b>Udostępnij</b> → <b>Do ekranu początkowego</b>. ":""}Własne okno, pełny ekran, działa offline — płynniej i stabilniej niż w karcie przeglądarki.</span></div>
   <div class="ib">${installEvt?'<button class="btn p" id="instGo">Zainstaluj</button>':""}<button class="btn" id="instLater">Nie teraz</button></div>`;
