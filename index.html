@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Wirtualne Laboratorium OF</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#20262f">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Laboratorium OF">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Wirtualne laboratorium 3D do zadań doświadczalnych Olimpiady Fizycznej: gotowy zestaw, własne pomiary.">
 <style>
 :root{--ink:#1b2130;--muted:#5f6676;--line:#dcd5c3;--acc:#c2410c;--blue:#1e5aa8;--ok:#15803d;--bad:#b91c1c;--warn:#a16207;--card:#fffdf8}
@@ -147,6 +155,11 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 .pill.ico{padding:0 9px;display:inline-flex;align-items:center}.pill.ico svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7}
 #ver{position:absolute;right:10px;bottom:6px;font:11px system-ui;color:rgba(27,33,48,.38);z-index:4;cursor:pointer;padding:4px}
 #diag{display:none;position:absolute;right:10px;bottom:28px;z-index:6;margin:0;padding:10px 12px;background:rgba(20,24,32,.92);color:#cfe3ff;font:11px/1.45 ui-monospace,monospace;border-radius:10px;max-width:min(520px,calc(100% - 20px));white-space:pre-wrap}
+/* --- propozycja instalacji (PWA) --- */
+#install{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:12px;width:min(620px,calc(100% - 24px));padding:12px 14px;background:#fffdf8;border-radius:16px;box-shadow:0 14px 40px rgba(10,14,22,.35),0 0 0 1px rgba(0,0,0,.06);animation:instIn .35s ease-out}
+@keyframes instIn{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+#install img{width:48px;height:48px;border-radius:11px;flex:0 0 auto}#install .it{flex:1;display:flex;flex-direction:column;gap:2px;font-size:13px;color:#444}#install .it b{color:#1b2130}#install .it>b{font-size:15px}
+#install .ib{display:flex;gap:6px;flex:0 0 auto}@media (max-width:560px){#install{flex-wrap:wrap}#install .ib{width:100%;justify-content:flex-end}}
 </style>
 </head>
 <body>
@@ -157,7 +170,7 @@ table.cmpt{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}.
 <div class="ov" id="taskOv"><div class="box" id="taskBox"></div></div>
 
 <div id="catalog"></div>
-<script src="zadania/index.js?v=0.9"></script>
-<script src="engine.js?v=0.9"></script>
+<script src="zadania/index.js?v=0.10"></script>
+<script src="engine.js?v=0.10"></script>
 </body>
 </html>

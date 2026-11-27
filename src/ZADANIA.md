@@ -42,3 +42,8 @@ LAB.defineTask({
 - Naklejki i cienkie warstwy (kartka, ślad grafitu) kładź 0,3–0,8 mm nad powierzchnią.
 - Przezroczystość: kolor `rgba(…)` lub `{alpha}` — rysowane po bryłach, od najdalszych.
 - Napisy, strzałki Nauki i uchwyty rysuje warstwa 2D nad sceną (`D.P2` daje współrzędne ekranu).
+
+## Wydanie nowej wersji
+1. Podbij `VERSION` w `src/core/04-shell.js`.
+2. `python3 build.py` — skleja silnik i podmienia `?v=` w `index.html` oraz `sw.js` (aplikacja zainstalowana pobierze nowe pliki).
+3. Nowe zadanie dopisz też do listy `CORE` w `sw.js`, żeby działało offline.
