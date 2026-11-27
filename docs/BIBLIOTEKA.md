@@ -73,6 +73,20 @@ Biblioteka istnieje w kodzie: `src/core/08-sprzet.js`, dostępna w zadaniach jak
 | `scisk({x,zGora})` | ścisk stolarski na krawędzi blatu |
 | `chusteczki({c})`, `klips({c})` | chusteczki, klips do kartki |
 
-Następny krok: moduł obwodów (multimetr, zasilacz, przewody, bateria, opornik, LED), potem łatwe zadania LXXI, LXVI, LXII, LX, LXIII.
+### Elektronika (v0.14, `src/core/09-elektronika.js`)
+
+| Funkcja | Przedmiot |
+|---|---|
+| `multimetr({c,odczyt,pokretlo})`, `gniazdaMultimetru(c)` | multimetr 830 z LCD i gniazdami COM/V/10A |
+| `zasilacz({c,U,I,kU,kI})`, `zaciskiZasilacza(c)`, `pokretlaZasilacza(c)` | zasilacz z wyświetlaczami U/I, pokrętłami i zaciskami |
+| `przewod({a,b,kA,kB,wtykA,wtykB,kolor})` | przewód z wtykiem bananowym / krokodylkiem / pinem, sam układa się na stole |
+| `plytkaStykowa({c})`, `dziura(c,kol,rz)` | płytka stykowa 30 kolumn, raster 2,54 mm |
+| `opornik({a,b,paski})`, `led({a,k,kolor,swieci})`, `kondensator({c})`, `tranzystor({c})` | elementy na nóżkach |
+| `bateriaPlaska({c})`, `blaszkiBaterii(c)`, `bateriaAA({c,os})` | baterie |
+| `magnes({c})`, `zarowka({c,swieci})` | magnes neodymowy, żarówka w oprawce |
+
+Plac zabaw „elektronika” ma działający obwód: zasilacz CV/CC → opornik → LED (równanie Shockleya, przepalenie przy zbyt dużym prądzie) i multimetr z zakresami na baterii.
+
+Następny krok: zadania obwodowe — LXXI (RC), LXVI (tranzystor), potem LXII, LX, LXIII.
 
 Testy regresji: `python3 tests/test_lab.py` (fizyka OF73/OF75 + start zadań bez błędów).

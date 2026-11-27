@@ -77,7 +77,9 @@ function tapeNow(o,d,w,L,W,opts){opts=opts||{};const mir=cross(w,d).z<-0.5?1:0;c
   TX.push({tex:tapeTile(W,i,opts,mir),pts:[p0,p1,add(p1,mul(w,W)),add(p0,mul(w,W))],uv:[0,0,ub,0,ub,1,0,1]})}}
 
 // tekstura powtarzalna (np. siatka papieru milimetrowego): rysowana raz na płótnie 2^n×2^n, potem kafelkowana
-function repTex(key,size,paint){let t=texCache.get(key);if(t)return t;const c=document.createElement("canvas");c.width=c.height=size;paint(c.getContext("2d"),size);
+const dynKeys=[];   // tekstury zmienne (wyświetlacze): trzymamy tylko ostatnie
+function repTex(key,size,paint){let t=texCache.get(key);if(t)return t;
+ if(key.startsWith("dyn:")){dynKeys.push(key);if(dynKeys.length>40){const k=dynKeys.shift(),o=texCache.get(k);if(o){gl.deleteTexture(o);texCache.delete(k)}}}const c=document.createElement("canvas");c.width=c.height=size;paint(c.getContext("2d"),size);
  const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.generateMipmap(gl.TEXTURE_2D);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
  const af=gl.getExtension("EXT_texture_filter_anisotropic");if(af)gl.texParameterf(gl.TEXTURE_2D,af.TEXTURE_MAX_ANISOTROPY_EXT,8);texCache.set(key,tx);return tx}
@@ -88,7 +90,7 @@ function texQuadNow(pts,uv,key,size,paint){if(!gl||glLost)return;TX.push({tex:re
 function prog(vs,fs){const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(x);return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,vs));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);return p}
 let PC,PT,bufC,bufT;
-function initGL(){texCache.clear();PC=prog(`attribute vec3 p;attribute vec4 c;uniform mat4 M;varying vec4 vc;void main(){gl_Position=M*vec4(p,1.0);vc=c;}`,
+function initGL(){texCache.clear();dynKeys.length=0;PC=prog(`attribute vec3 p;attribute vec4 c;uniform mat4 M;varying vec4 vc;void main(){gl_Position=M*vec4(p,1.0);vc=c;}`,
  `precision mediump float;varying vec4 vc;void main(){gl_FragColor=vc;}`);
  PT=prog(`attribute vec3 p;attribute vec2 t;uniform mat4 M;varying vec2 vt;void main(){gl_Position=M*vec4(p,1.0);vt=t;}`,
  `precision mediump float;varying vec2 vt;uniform sampler2D s;void main(){gl_FragColor=texture2D(s,vt);}`);

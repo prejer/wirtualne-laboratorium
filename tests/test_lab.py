@@ -23,10 +23,17 @@ OF73 = r"""(()=>{const S=window.OF73_TEST,st=S.st;S.newTrial();let slip=null;
  for(let i=0;i<3000;i++){S.movePaper(-0.0002);S.step(0.002)}
  return{slip,kinDrift:Math.abs(x2-x1),sliding,stuck,trail:S.trail.length,valid:!!S.cfg(st.Xt),off:st.off}})()"""
 
+ELEK = r"""(()=>{const T=window.ELEK_TEST,st=T.st,P=T.P();st.podl=true;st.spalona=false;st.Ilim=1;
+ st.U=5;let c=T.solve();const I5=c.I,UD=c.UD,kir=c.U-c.I*P.R-c.UD;st.U=1.5;const I15=T.solve().I;
+ st.U=12;st.Ilim=0.005;c=T.solve();const cc=c.cc,Icc=c.I,Ucc=c.U;
+ st.Ilim=1;for(let i=0;i<60;i++)T.update(0.02);const safe=!st.spalona;st.mostek=true;st.U=5;for(let i=0;i<60;i++)T.update(0.02);const burnt=st.spalona,Iafter=T.solve().I;st.spalona=false;st.mostek=false;st.U=0;
+ st.zakres=3;for(let i=0;i<30;i++)T.update(0.02);const m20=st.odczyt;st.zakres=2;for(let i=0;i<30;i++)T.update(0.02);const m2=st.odczyt;st.zakres=3;
+ return{safe,I5,UD,kir,I15,cc,Icc,Ucc,burnt,Iafter,m20,m2,emf:P.emf}})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -37,6 +44,16 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "plac-elektronika":
+            r = pg.evaluate(ELEK)
+            check("LED: U = I·R + U_D (Kirchhoff)", abs(r["kir"]) < 1e-6, f"I={r['I5']*1000:.2f} mA przy 5 V, U_D={r['UD']:.3f} V")
+            check("LED: realny prąd przy 5 V (8–10 mA)", 0.0075 < r["I5"] < 0.0105)
+            check("LED: poniżej progu prawie nie przewodzi", r["I15"] < 1e-5, f"I(1,5 V)={r['I15']*1e6:.2f} µA")
+            check("zasilacz: ograniczenie prądu (CC)", r["cc"] and abs(r["Icc"] - 0.005) < 1e-9, f"U={r['Ucc']:.2f} V")
+            check("opornik chroni diodę (12 V, bez przepalenia)", r["safe"])
+            check("bez opornika dioda się przepala", r["burnt"] and r["Iafter"] == 0)
+            check("multimetr: 20 V pokazuje SEM baterii", abs(float(r["m20"]) - r["emf"]) < 0.02, f"{r['m20']} vs {r['emf']:.3f}")
+            check("multimetr: 2 V — przekroczenie zakresu „1.”", r["m2"] == "1.")
         elif tid == "of73-2-olowek":
             r = pg.evaluate(OF73)
             s = r["slip"]

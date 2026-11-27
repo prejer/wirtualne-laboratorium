@@ -79,7 +79,6 @@ function draw(D){const c=cfg(st.Xt);const P=c?c.P:V(0.03,0,0.02),tip=V(st.Xt,0,0
  if(st.laid){const y0=-0.058,a0=st.lay,Pl=V(a0+D_P,y0,0.004),tl=V(a0,y0,0.004);S.olowek(Pl,tl);const e=V(a0+D_P+Lc(),y0,0.0007);
   S.nic([add(Pl,V(0.004,0,-0.003)),e]);S.tasma({c:V(e.x+0.003,y0,0.0002),n:Z,u:X,dl:0.018,szer:0.018})}
  else{S.nic([A(),P]);S.olowek(P,tip)}
- S.klips({c:V(p1+0.008,-0.0875,0)});                                                  // klips do ciągnięcia kartki
  S.linijka({o:V(st.r,-0.008,0),d:Z,w:X,L:0.20,W:0.03,przezroczysta:true});           // linijka pionowa (przezroczysta)
 }
 
@@ -95,7 +94,7 @@ LAB.defineTask({id:"of73-2-olowek",
  scene:{light:V(0.35,-0.5,1),table:{x0:-0.6,x1:0.85,y0:-0.42,y1:0.38},draw},
  views:[{label:"Z boku",cam:()=>({t:V(0.12,0,0.09),yaw:-0.06,pitch:0.07,dist:0.5})},{label:"3D",cam:()=>({t:V(0.06,0,0.12),yaw:0.75,pitch:0.38,dist:0.8})},{label:"Z góry",cam:()=>({t:V(0.15,0,0),yaw:0,pitch:1.56,dist:0.7})},{label:"Styk",cam:()=>({t:V(st.Xt,0,0.01),yaw:-0.4,pitch:0.25,dist:0.12})}],
  movables:[
-  {id:"paper",label:"Kartka",hint:"ciągnij powoli od pudła",grab:()=>({p:V(0.02+st.off+PAPW+0.008,-0.0875,0.004),r:0.012,axis:V(1,0,0),onMove:movePaper})},
+  {id:"paper",label:"Kartka",hint:"ciągnij za brzeg powoli od pudła",grab:()=>({p:V(0.02+st.off+PAPW-0.012,-0.085,0.0005),r:0.014,axis:V(1,0,0),onMove:movePaper})},
   {id:"ruler",label:"Linijka pionowa",hint:"dosuń do końca ołówka",grab:()=>({p:V(st.r+0.015,-0.008,0.1),r:0.015,axis:V(1,0,0),onMove:ds=>{st.r=Math.max(0,Math.min(0.26,st.r+ds))}})},
   {id:"anchor",label:"Zaczep nici",hint:"przyklej wyżej lub niżej",grab:()=>({p:A(),r:0.012,axis:V(0,0,1),onStart:()=>{st.held=false},onMove:ds=>{const L=Lc();st.zA=Math.max(L+0.015,Math.min(Math.min(BOXH-0.01,L+0.12),st.zA+ds));if(!slide)checkSlip()}})}],
  actions:[
