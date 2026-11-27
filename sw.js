@@ -2,8 +2,8 @@
    • strona (HTML): najpierw sieć, przy braku sieci kopia z pamięci;
    • pliki z ?v=wersja (silnik, zadania): z pamięci — nowa wersja ma nowy adres, więc nie ma starych plików;
    • reszta (ikony, manifest): z pamięci, w tle odświeżana. */
-const CACHE="lab-v0.23";
-const CORE=["./","./index.html","./engine.js?v=0.23","./zadania/index.js?v=0.23","./zadania/of73-2-olowek.js?v=0.23","./zadania/of75-2-tarcie.js?v=0.23","./zadania/of65-2-kulka.js?v=0.23","./zadania/of59-2-brzeszczot.js?v=0.23","./zadania/of71-2-rc.js?v=0.23","./zadania/of56-2-led-cd.js?v=0.23","./zadania/of72-2-brewster.js?v=0.23","./zadania/lo-wahadlo.js?v=0.23","./zadania/lo-zalamanie.js?v=0.23","./zadania/lo-charakterystyka.js?v=0.23","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
+const CACHE="lab-v0.24";
+const CORE=["./","./index.html","./engine.js?v=0.24","./zadania/index.js?v=0.24","./zadania/of73-2-olowek.js?v=0.24","./zadania/of75-2-tarcie.js?v=0.24","./zadania/of65-2-kulka.js?v=0.24","./zadania/of59-2-brzeszczot.js?v=0.24","./zadania/of71-2-rc.js?v=0.24","./zadania/of56-2-led-cd.js?v=0.24","./zadania/of72-2-brewster.js?v=0.24","./zadania/lo-wahadlo.js?v=0.24","./zadania/lo-zalamanie.js?v=0.24","./zadania/lo-charakterystyka.js?v=0.24","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{const r=e.request;if(r.method!=="GET"||new URL(r.url).origin!==location.origin)return;

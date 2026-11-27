@@ -13,7 +13,6 @@ const num=v=>parseFloat(String(v).replace(",","."));
 const fmt=(v,d)=>(isFinite(v)?v.toFixed(Math.max(0,d)):"—").replace(".",",");
 const route=(()=>{const m=location.hash.match(/^#([a-z0-9-]+)(?:\/(\d+))?$/);return m?{id:m[1],z:m[2]}:null})();
 let seed=0;
-try{history.replaceState(null,"","#z"+seed)}catch(e){}
 let noiseR=Math.random;function gauss(){let a=0;for(let i=0;i<6;i++)a+=noiseR();return(a-3)/0.7071}
 
 let T=null; // znormalizowana konfiguracja aktywnego zadania
