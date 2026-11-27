@@ -56,10 +56,14 @@ for(const d of[0,1]){st.dioda=d;st.y=0.04;let best=1,bx=0;const pb=-P.beta*Math.
  st.x=bx;const E=LAB.add(T.C0,LAB.mul(T.eyeDir(),0.34));st.psi=0;const I0=T.glint(E).I;st.psi=pb;out.push({d,tg:bx/0.04,n:d?P.nB:P.nR,Imin:best,I0})}
 st.x=0.09;st.y=0.06;st.dioda=0;st.psi=0;return out})()"""
 
+LOW = r"""(()=>{const T=window.LOW_TEST,st=T.st,out=[];
+for(const[L,A]of[[0.4,4],[1.0,4],[1.0,50]]){st.L=L;st.th=A*Math.PI/180;st.om=0;st.held=false;T.reset();for(let i=0;i<24000;i++)T.step(0.0005);
+ const T0=2*Math.PI*Math.sqrt(T.Lc()/9.81),Tm=T.periodMeas();out.push({L,A,T:Tm,ratio:Tm/T0})}st.th=0;st.om=0;return out})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster", "lo-wahadlo"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -70,6 +74,10 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "lo-wahadlo":
+            for r in pg.evaluate(LOW):
+                if r["A"] < 10: check(f"wahadło: T = 2π√(L/g) dla małych wychyleń (L={r['L']} m)", abs(r["ratio"] - 1) < 0.003, f"T={r['T']:.4f} s")
+                else: check(f"wahadło: okres rośnie z amplitudą ({r['A']}°)", r["ratio"] > 1.01, f"T/T₀={r['ratio']:.4f}")
         elif tid == "of72-2-brewster":
             for r in pg.evaluate(OF72):
                 check(f"OF72 wygaszenie przy tgα = n (dioda {r['d']})", abs(r["tg"] - r["n"]) < 0.02, f"tgα={r['tg']:.3f}, n={r['n']:.3f}")

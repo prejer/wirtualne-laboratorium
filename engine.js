@@ -78,9 +78,12 @@ function cyl(a,b,r0,col,o){o=o||{};const r1=o.r1??r0;const ab=sub(b,a),L=len(ab)
  if(o.caps!==false){if(r0>0.0005)face(ring(0,r0).reverse(),mul(u,-1),o.capCol||col,o);if(r1>0.0005)face(ring(1,r1),u,o.capCol||col,o)}}
 function box(c,ax,ay,az,col,o){const P=(i,j,k)=>add(c,add(mul(ax,i),add(mul(ay,j),mul(az,k))));const F=[[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1],ax],[[-1,1,-1],[-1,-1,-1],[-1,-1,1],[-1,1,1],mul(ax,-1)],[[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1],ay],[[1,-1,-1],[-1,-1,-1],[-1,-1,1],[1,-1,1],mul(ay,-1)],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],az],[[-1,1,-1],[1,1,-1],[1,-1,-1],[-1,-1,-1],mul(az,-1)]];
  F.forEach((f,i)=>face(f.slice(0,4).map(q=>P(...q)),nrm(f[4]),(o&&o.cols&&o.cols[i])||col,o))}
-function sphere(c,r,col,o){o=o||{};const nl=LQ?8:(o.nl||12),nm=LQ?14:(o.n||22),P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
- for(let i=0;i<nl;i++)for(let j=0;j<nm;j++){const a=P(i,j),b=P(i,j+1),d=P(i+1,j+1),e=P(i+1,j);const pts=i===0?[a,d,e]:i===nl-1?[a,b,d]:[a,b,d,e];
-  const m=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length);face(pts,nrm(sub(m,c)),col,o)}}
+function sphere(c,r,col,o){o=o||{};const nl=LQ?8:(o.nl||16),nm=LQ?14:(o.n||28),P=(i,j)=>{const t=Math.PI*i/nl-Math.PI/2,f=2*Math.PI*j/nm;return add(c,V(r*Math.cos(t)*Math.cos(f),r*Math.cos(t)*Math.sin(f),r*Math.sin(t)))};
+ // gładkie cieniowanie (kolor liczony w wierzchołkach z normalnych kuli, interpolowany na trójkątach)
+ const smooth=!(o.alpha<1);for(let i=0;i<nl;i++)for(let j=0;j<nm;j++){const a=P(i,j),b=P(i,j+1),d=P(i+1,j+1),e=P(i+1,j);const pts=i===0?[a,d,e]:i===nl-1?[a,b,d]:[a,b,d,e];
+  const m=mul(pts.reduce((s,p)=>add(s,p),V(0,0,0)),1/pts.length),fn=nrm(sub(m,c));if(!smooth){face(pts,fn,col,o);continue}
+  if(o.shadow!==false)shadowPolys.push(pts);if(dot(fn,sub(CB.pos,m))<=0)continue;const cs=pts.map(q=>shadeC(col,nrm(sub(q,c)),o,q));
+  for(let k=1;k<pts.length-1;k++)for(const t of[0,k,k+1]){const q=pts[t],cc=cs[t];OP.push(q.x,q.y,q.z,cc[0],cc[1],cc[2],cc[3])}}}
 function band(path,w,width,col,o){o=Object.assign({two:true},o||{});for(let i=0;i<path.length-1;i++){const a=path[i],b=path[i+1];const hw=mul(w,width/2);const n=nrm(cross(sub(b,a),w));if(len(n)<1e-9)continue;face([sub(a,hw),add(a,hw),add(b,hw),sub(b,hw)],n,col,o)}}
 
 // ---------- taśma / linijka z podziałką (tekstura w kafelkach po 5 cm, ostra przy dużym przybliżeniu) ----------
