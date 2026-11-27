@@ -65,10 +65,15 @@ LOZ = r"""(()=>{const T=window.LOZ_TEST,st=T.st,n=T.P().n;st.flip=false;st.laser
  st.flip=true;st.phi=40;R=T.rays();const b2=Math.atan2(Math.abs(R.out.x),Math.abs(R.out.y));const snell2=Math.abs(Math.sin(40*Math.PI/180)-n*Math.sin(b2));st.flip=false;st.phi=20;
  return{snell,ag,tirOk:a&&b,snell2}})()"""
 
+LOC = r"""(()=>{const T=window.LOC_TEST,st=T.st,P=T.P();st.Ilim=0.5;st.vPos=0;st.zA=1;
+const run=(el,U,odw)=>{st.el=el;st.U=U;st.odw=!!odw;st.T=295;for(let i=0;i<300;i++)T.step(0.01);return T.solve()};
+let c=run(0,1);const R1=c.Ue/c.I;c=run(0,5);const R5=c.Ue/c.I;const kir=c.Us-c.Ue-c.Ia*c.RA;c=run(1,0.2);const Rb02=c.Ue/c.I;c=run(1,6);const Rb6=c.Ue/c.I,Ib=c.I;
+c=run(2,1);const Id=c.I;c=run(2,5,true);const Irev=c.I;st.U=0;st.odw=false;st.el=1;return{R:P.R,R1,R5,kir,Rb02,Rb6,Ib,Id,Irev}})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster", "lo-wahadlo", "lo-zalamanie"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster", "lo-wahadlo", "lo-zalamanie", "lo-charakterystyka"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -79,6 +84,12 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "lo-charakterystyka":
+            r = pg.evaluate(LOC)
+            check("I–U: opornik spełnia prawo Ohma", abs(r["R1"] - r["R"]) < 0.01 and abs(r["R5"] - r["R"]) < 0.01)
+            check("I–U: żarówka 6 V/0,15 A — opór rośnie z napięciem", 0.13 < r["Ib"] < 0.17 and r["Rb6"] > 5 * r["Rb02"], f"I(6 V)={r['Ib']*1000:.0f} mA, R: {r['Rb02']:.1f} → {r['Rb6']:.1f} Ω")
+            check("I–U: dioda przewodzi w jedną stronę", r["Id"] > 0.01 and abs(r["Irev"]) < 1e-7)
+            check("I–U: Kirchhoff — U_zas = U_el + I_A·R_A", abs(r["kir"]) < 1e-6)
         elif tid == "lo-zalamanie":
             r = pg.evaluate(LOZ)
             check("załamanie: prawo Snella n·sinα = sinβ", r["snell"] < 1e-9)

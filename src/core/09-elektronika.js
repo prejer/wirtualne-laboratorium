@@ -57,16 +57,16 @@ Object.assign(sprzet,{
    const yy=c.y+s*(hy-0.0075);stripNow(V(c.x-hx+0.004,yy,z),V(c.x+hx-0.004,yy,z),0.0006,s<0?"#d0352b":"#2f62c6",2)}},
  dziura(c,kol,rz){const y=rz<5?c.y-0.0035-(4-rz)*RASTER:c.y+0.0035+(rz-5)*RASTER;return V(c.x+(kol-14.5)*RASTER,y,c.z+0.0085)},
  // Opornik osiowy: a, b — punkty, gdzie nóżki wchodzą w płytkę/stół; paski: kolory pasków (np. 330 Ω: pomarańcz, pomarańcz, brąz, złoty).
- opornik({a,b,paski=["#e07b1f","#e07b1f","#7a4a1f","#c9a64a"],h=0.004}={}){const m=mul(add(a,b),0.5),u=nrm(sub(b,a)),L=0.0063,top=add(m,V(0,0,h));
+ opornik({a,b,paski=["#e07b1f","#e07b1f","#7a4a1f","#c9a64a"],h=0.004,korpus="#d9c79a"}={}){const m=mul(add(a,b),0.5),u=nrm(sub(b,a)),L=0.0063,top=add(m,V(0,0,h));
   const e1=add(top,mul(u,-L/2)),e2=add(top,mul(u,L/2));nozka(a,add(a,V(0,0,h)));nozka(b,add(b,V(0,0,h)));nozka(add(a,V(0,0,h)),e1);nozka(e2,add(b,V(0,0,h)));
-  cyl(add(e1,mul(u,0.0004)),add(e2,mul(u,-0.0004)),0.0012,"#d9c79a",{n:12,amb:0.55,spec:0.25});cyl(e1,add(e1,mul(u,0.0012)),0.00135,"#d9c79a",{n:12,r1:0.0013});cyl(add(e2,mul(u,-0.0012)),e2,0.0013,"#d9c79a",{n:12,r1:0.00135});
-  paski.forEach((col,i)=>{const t=i<3?-0.0021+i*0.0011:0.0021;cyl(add(top,mul(u,t-0.00035)),add(top,mul(u,t+0.00035)),0.00128,col,{n:12,caps:false,amb:0.55})})},
+  cyl(add(e1,mul(u,0.0004)),add(e2,mul(u,-0.0004)),0.0012,korpus,{n:12,amb:0.55,spec:0.25});cyl(e1,add(e1,mul(u,0.0012)),0.00135,korpus,{n:12,r1:0.0013});cyl(add(e2,mul(u,-0.0012)),e2,0.0013,korpus,{n:12,r1:0.00135});
+  paski.forEach((col,i)=>{if(!col)return;const t=i<3?-0.0021+i*0.0011:0.0021;cyl(add(top,mul(u,t-0.00035)),add(top,mul(u,t+0.00035)),0.00128,col,{n:12,caps:false,amb:0.55})})},
  // Dioda LED 5 mm stojąca na nóżkach: a — anoda (dłuższa nóżka), k — katoda. swieci: 0–1 (jasność).
  led({a,k,kolor="#e3261c",swieci=0,h=0.012}={}){const m=mul(add(a,k),0.5),top=add(m,V(0,0,h));nozka(a,add(a,V(0,0,h)));nozka(k,add(k,V(0,0,h)));
   const lit=Math.max(0,Math.min(1,swieci)),o={n:16,amb:0.45+0.55*lit,spec:0.5,alpha:0.85};
   cyl(top,add(top,V(0,0,0.001)),0.0029,kolor,{...o,n:16});cyl(add(top,V(0,0,0.001)),add(top,V(0,0,0.0065)),0.0025,kolor,o);
   cyl(add(top,V(0,0,0.0065)),add(top,V(0,0,0.0083)),0.0025,kolor,{...o,r1:0.0008});
-  if(lit>0.02){const g=add(top,V(0,0,0.005));cyl(add(g,V(0,0,-0.006)),add(g,V(0,0,0.007)),0.0075*(0.6+0.6*lit),kolor,{n:16,r1:0.002,alpha:0.18*lit,amb:1,shadow:false,caps:false})}},
+  if(lit>0.02)sphere(add(top,V(0,0,0.0055)),0.004+0.005*lit,kolor,{alpha:0.08+0.14*lit,amb:1,shadow:false,nl:10,n:16})},
  // Kondensator elektrolityczny stojący: c — środek między nóżkami (na płytce/stole).
  kondensator({c,r=0.004,h=0.011,kolor="#24477e"}={}){const z0=c.z+0.003;nozka(add(c,V(-0.001,0,0)),add(c,V(-0.001,0,0.003)));nozka(add(c,V(0.0015,0,0)),add(c,V(0.0015,0,0.003)));
   cyl(V(c.x,c.y,z0),V(c.x,c.y,z0+h),r,kolor,{n:18,amb:0.5,spec:0.45,capCol:"#b9bfc6"});box(V(c.x,c.y-r*0.97,z0+h/2),mul(SX,0.0012),mul(SY,0.0005),mul(Z,h/2-0.0006),"#b9c6d6",{amb:0.6,shadow:false})},
@@ -86,11 +86,11 @@ Object.assign(sprzet,{
  // Magnes neodymowy (walec): c środek podstawy.
  magnes({c,r=0.006,h=0.003}={}){cyl(c,add(c,V(0,0,h)),r,"#c3c8ce",{n:24,metal:60,spec:0.8,amb:0.35})},
  // Żarówka 3,5 V w oprawce: c środek podstawy. swieci 0–1.
- zarowka({c,swieci=0}={}){const lit=Math.max(0,Math.min(1,swieci));cyl(c,add(c,V(0,0,0.008)),0.012,"#2b2e33",{n:18,amb:0.45});
+ zarowka({c,swieci=0,kolor="#ffe680"}={}){const lit=Math.max(0,Math.min(1,swieci));cyl(c,add(c,V(0,0,0.008)),0.012,"#2b2e33",{n:18,amb:0.45});
   cyl(add(c,V(0,0,0.008)),add(c,V(0,0,0.016)),0.005,"#c9ced4",{n:14,metal:45,spec:0.6});
-  cyl(add(c,V(0,0,0.016)),add(c,V(0,0,0.024)),0.0055,"#f2f2ea",{n:16,r1:0.0055,alpha:0.35,amb:0.6+0.4*lit,caps:false});cyl(add(c,V(0,0,0.024)),add(c,V(0,0,0.03)),0.0055,"#f2f2ea",{n:16,r1:0.0015,alpha:0.35,amb:0.6+0.4*lit});
-  cyl(add(c,V(0,0,0.0215)),add(c,V(0,0,0.0225)),0.0016,lit>0.05?"#fff3b0":"#666",{n:6,amb:0.3+0.7*lit,shadow:false});
-  if(lit>0.05)cyl(add(c,V(0,0,0.012)),add(c,V(0,0,0.036)),0.016*(0.6+0.5*lit),"#ffe680",{n:16,r1:0.004,alpha:0.16*lit,amb:1,shadow:false,caps:false});
+  cyl(add(c,V(0,0,0.016)),add(c,V(0,0,0.019)),0.0042,"#f2f2ea",{n:16,r1:0.005,alpha:0.35,amb:0.6+0.4*lit,caps:false});sphere(add(c,V(0,0,0.0245)),0.0068,"#f2f2ea",{alpha:0.3,amb:0.6+0.4*lit,shadow:false,nl:10,n:18});
+  cyl(add(c,V(0,0,0.0215)),add(c,V(0,0,0.0225)),0.0016,lit>0.05?kolor:"#666",{n:6,amb:0.3+0.7*lit,shadow:false});
+  if(lit>0.05){sphere(add(c,V(0,0,0.0235)),0.009+0.008*lit,kolor,{alpha:0.10+0.12*lit,amb:1,shadow:false,nl:10,n:18});sphere(add(c,V(0,0,0.0225)),0.004,kolor,{alpha:0.35*lit,amb:1,shadow:false,nl:8,n:12})}
   for(const s of[-1,1])cyl(add(c,V(s*0.01,-0.008,0.004)),add(c,V(s*0.01,-0.014,0.004)),0.0022,"#b9bec4",{n:8,metal:40})}
 ,
  // Stoper elektroniczny leżący na stole: c środek podstawy, czas [s] — wyświetlany jak na prawdziwym stoperze (mm:ss.ss).
