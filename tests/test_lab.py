@@ -59,7 +59,7 @@ st.x=0.09;st.y=0.06;st.dioda=0;st.psi=0;return out})()"""
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "plac-zabaw", "plac-elektronika", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -89,16 +89,6 @@ with sync_playwright() as p:
         elif tid == "of65-2-kulka":
             for r in pg.evaluate(OF65):
                 check(f"OF65 zasięg d = wzór Komitetu (tgα={r['tg']:.3f})", abs(r["d"] - r["pred"]) < 0.004 + 0.03 * r["pred"], f"d={r['d']*1000:.1f} wzór={r['pred']*1000:.1f} mm")
-        elif tid == "plac-elektronika":
-            r = pg.evaluate(ELEK)
-            check("LED: U = I·R + U_D (Kirchhoff)", abs(r["kir"]) < 1e-6, f"I={r['I5']*1000:.2f} mA przy 5 V, U_D={r['UD']:.3f} V")
-            check("LED: realny prąd przy 5 V (8–10 mA)", 0.0075 < r["I5"] < 0.0105)
-            check("LED: poniżej progu prawie nie przewodzi", r["I15"] < 1e-5, f"I(1,5 V)={r['I15']*1e6:.2f} µA")
-            check("zasilacz: ograniczenie prądu (CC)", r["cc"] and abs(r["Icc"] - 0.005) < 1e-9, f"U={r['Ucc']:.2f} V")
-            check("opornik chroni diodę (12 V, bez przepalenia)", r["safe"])
-            check("bez opornika dioda się przepala", r["burnt"] and r["Iafter"] == 0)
-            check("multimetr: 20 V pokazuje SEM baterii", abs(float(r["m20"]) - r["emf"]) < 0.02, f"{r['m20']} vs {r['emf']:.3f}")
-            check("multimetr: 2 V — przekroczenie zakresu „1.”", r["m2"] == "1.")
         elif tid == "of73-2-olowek":
             r = pg.evaluate(OF73)
             s = r["slip"]

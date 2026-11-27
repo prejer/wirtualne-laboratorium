@@ -85,7 +85,6 @@ Biblioteka istnieje w kodzie: `src/core/08-sprzet.js`, dostępna w zadaniach jak
 | `bateriaPlaska({c})`, `blaszkiBaterii(c)`, `bateriaAA({c,os})` | baterie |
 | `magnes({c})`, `zarowka({c,swieci})` | magnes neodymowy, żarówka w oprawce |
 
-Plac zabaw „elektronika” ma działający obwód: zasilacz CV/CC → opornik → LED (równanie Shockleya, przepalenie przy zbyt dużym prądzie) i multimetr z zakresami na baterii.
 
 Następny krok: zadania obwodowe — LXXI (RC), LXVI (tranzystor), potem LXII, LX, LXIII.
 
