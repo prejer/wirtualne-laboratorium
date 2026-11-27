@@ -60,10 +60,15 @@ LOW = r"""(()=>{const T=window.LOW_TEST,st=T.st,out=[];
 for(const[L,A]of[[0.4,4],[1.0,4],[1.0,50]]){st.L=L;st.th=A*Math.PI/180;st.om=0;st.held=false;T.reset();for(let i=0;i<24000;i++)T.step(0.0005);
  const T0=2*Math.PI*Math.sqrt(T.Lc()/9.81),Tm=T.periodMeas();out.push({L,A,T:Tm,ratio:Tm/T0})}st.th=0;st.om=0;return out})()"""
 
+LOZ = r"""(()=>{const T=window.LOZ_TEST,st=T.st,n=T.P().n;st.flip=false;st.laser=0;st.phi=25;let R=T.rays();const be=Math.atan2(Math.abs(R.out.x),Math.abs(R.out.y));
+ const snell=Math.abs(n*Math.sin(25*Math.PI/180)-Math.sin(be));const ag=Math.asin(1/n)*180/Math.PI;st.phi=ag-0.05;const a=!T.rays().f.tir;st.phi=ag+0.05;const b=T.rays().f.tir;
+ st.flip=true;st.phi=40;R=T.rays();const b2=Math.atan2(Math.abs(R.out.x),Math.abs(R.out.y));const snell2=Math.abs(Math.sin(40*Math.PI/180)-n*Math.sin(b2));st.flip=false;st.phi=20;
+ return{snell,ag,tirOk:a&&b,snell2}})()"""
+
 with sync_playwright() as p:
     exe = os.environ.get("CHROME") or ("/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None)
     b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster", "lo-wahadlo"]:
+    for tid in ["of73-2-olowek", "of75-2-tarcie", "of65-2-kulka", "of59-2-brzeszczot", "of71-2-rc", "of56-2-led-cd", "of72-2-brewster", "lo-wahadlo", "lo-zalamanie"]:
         print(f"== {tid}")
         pg = b.new_page(viewport={"width": 1280, "height": 800}); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -74,6 +79,11 @@ with sync_playwright() as p:
         if tid == "of75-2-tarcie":
             for r in pg.evaluate(OF75):
                 check(f"OF75 x_gr = f_s·y (y={r['y']*100:.1f} cm)", abs(r["xmax"] - r["pred"]) < 0.0015 + 0.05 * r["pred"], f"x={r['xmax']*100:.2f} pred={r['pred']*100:.2f} cm")
+        elif tid == "lo-zalamanie":
+            r = pg.evaluate(LOZ)
+            check("załamanie: prawo Snella n·sinα = sinβ", r["snell"] < 1e-9)
+            check("załamanie: całkowite odbicie dokładnie od kąta granicznego", r["tirOk"], f"α_gr={r['ag']:.2f}°")
+            check("załamanie: powietrze → szkło, sinα = n·sinβ", r["snell2"] < 1e-9)
         elif tid == "lo-wahadlo":
             for r in pg.evaluate(LOW):
                 if r["A"] < 10: check(f"wahadło: T = 2π√(L/g) dla małych wychyleń (L={r['L']} m)", abs(r["ratio"] - 1) < 0.003, f"T={r['T']:.4f} s")
